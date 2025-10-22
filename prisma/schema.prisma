@@ -1,0 +1,350 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StorePlatform {
+  WOO
+  SHOPIFY
+}
+
+enum ShipmentStatus {
+  UNKNOWN
+  INFO_RECEIVED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+  FAILED_ATTEMPT
+  RETURNED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  DONE
+  CANCELLED
+}
+
+enum EmailEventType {
+  DELIVERED
+  OPEN
+  CLICK
+  BOUNCE
+  COMPLAINT
+  UNSUBSCRIBE
+}
+
+enum AIJobType {
+  IMAGE
+  VIDEO
+}
+
+enum AIJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum RoleName {
+  ADMIN
+  MANAGER
+  PARTNER
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  roles UserRole[]
+}
+
+model Role {
+  id    String   @id @default(cuid())
+  name  RoleName @unique
+  users UserRole[]
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+/** Multi-store */
+model Store {
+  id        String        @id @default(cuid())
+  name      String
+  platform  StorePlatform
+  domain    String
+  // OAuth / keys (nên mã hoá app-side trước khi lưu)
+  settings  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  StoreProductMap[]
+  orders    Order[]
+  customers StoreCustomerMap[]
+}
+
+/** Chuẩn hoá Brand */
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+}
+
+/** Product chuẩn hoá + raw payload để giữ nguyên nguồn */
+model Product {
+  id         String           @id @default(cuid())
+  title      String
+  description String?
+  brandId    String?
+  brand      Brand?           @relation(fields: [brandId], references: [id])
+  rawPayload Json             // JSONB
+
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  variants   ProductVariant[]
+  maps       StoreProductMap[]
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  sku         String?
+  price       Decimal?
+  currency    String?
+  rawPayload  Json?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sku])
+}
+
+model StoreProductMap {
+  id         String  @id @default(cuid())
+  storeId    String
+  productId  String
+  externalId String  // id sản phẩm ở store nguồn (Woo/Shopify)
+
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, externalId])
+}
+
+/** Customer chuẩn hoá, hỗ trợ multi email/phone nếu cần */
+model Customer {
+  id         String   @id @default(cuid())
+  name       String?
+  emails     String[] // mảng email
+  phones     String[] // mảng phone
+  acceptsMk  Boolean  @default(false)
+  tags       String[]
+  rawPayload Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders     Order[]
+  maps       StoreCustomerMap[]
+}
+
+model StoreCustomerMap {
+  id         String @id @default(cuid())
+  storeId    String
+  customerId String
+  externalId String   // id khách hàng ở store
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, externalId])
+}
+
+/** Order + OrderItem */
+model Order {
+  id         String   @id @default(cuid())
+  storeId    String
+  customerId String?
+  status     String
+  total      Decimal
+  currency   String
+
+  brandId    String?
+  brand      Brand?   @relation(fields: [brandId], references: [id])
+
+  externalId String   // order id của store
+  rawPayload Json
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  store   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  items   OrderItem[]
+  shipment Shipment?
+  events  OrderEvent[]
+
+  @@unique([storeId, externalId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+  variantId String?
+  quantity  Int
+  price     Decimal?
+  currency  String?
+
+  rawPayload Json?
+
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?       @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  type      String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, type])
+}
+
+/** Shipment + TrackingEvent */
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String         @unique
+  carrier        String
+  trackingNumber String
+  status         ShipmentStatus @default(UNKNOWN)
+  lastCheckedAt  DateTime?
+
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  events  TrackingEvent[]
+}
+
+model TrackingEvent {
+  id          String         @id @default(cuid())
+  shipmentId  String
+  status      ShipmentStatus
+  description String?
+  location    String?
+  occurredAt  DateTime
+  rawPayload  Json?
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, occurredAt])
+}
+
+/** Email Marketing */
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  bodyMjml  String?  // tùy chọn MJML
+  bodyHtml  String?  // compiled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  brandId     String?
+  brand       Brand?         @relation(fields: [brandId], references: [id])
+  segmentSql  String         // hoặc JSON rule tree
+  templateId  String
+  status      CampaignStatus @default(DRAFT)
+  scheduledAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  template  EmailTemplate @relation(fields: [templateId], references: [id])
+  sends     EmailSend[]
+}
+
+model EmailSend {
+  id          String   @id @default(cuid())
+  campaignId  String
+  toEmail     String
+  subject     String
+  bodyHtml    String
+  status      String    // queued/sent/failed
+  providerId  String?   // id bên Mailjet
+  createdAt   DateTime  @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  events   EmailEvent[]
+}
+
+model EmailEvent {
+  id         String        @id @default(cuid())
+  emailSendId String
+  type       EmailEventType
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  emailSend EmailSend @relation(fields: [emailSendId], references: [id], onDelete: Cascade)
+
+  @@index([emailSendId, type])
+}
+
+/** AI pipeline (ảnh/video) */
+model AIJob {
+  id          String      @id @default(cuid())
+  type        AIJobType
+  promptIn    String
+  promptOut   String?
+  status      AIJobStatus @default(QUEUED)
+  outputUrl   String?
+  driveFileId String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/** Lưu secret/credential từng integration (mã hoá ở app) */
+model IntegrationCredential {
+  id        String   @id @default(cuid())
+  storeId   String?
+  provider  String   // "mailjet", "aftership", "17track", "gemini", "drive"
+  data      Json     // encrypted json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, provider])
+}
