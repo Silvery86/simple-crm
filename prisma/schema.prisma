@@ -1,4 +1,6 @@
-// prisma/schema.prisma
+// This is your Prisma schema file for Simple CRM
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,57 +10,69 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// E-commerce platform types
 enum StorePlatform {
-  WOO
-  SHOPIFY
+  WOO       // WooCommerce
+  SHOPIFY   // Shopify (future support)
 }
 
+// Shipment tracking status from providers (AfterShip, 17Track)
 enum ShipmentStatus {
   UNKNOWN
-  INFO_RECEIVED
-  IN_TRANSIT
-  OUT_FOR_DELIVERY
-  DELIVERED
-  EXCEPTION
-  FAILED_ATTEMPT
-  RETURNED
+  INFO_RECEIVED     // Tracking info created but no movement yet
+  IN_TRANSIT        // Package is on the way
+  OUT_FOR_DELIVERY  // Package is out for delivery
+  DELIVERED         // Package delivered successfully
+  EXCEPTION         // Delivery exception or delay
+  FAILED_ATTEMPT    // Failed delivery attempt
+  RETURNED          // Package returned to sender
 }
 
+// Email campaign lifecycle status
 enum CampaignStatus {
-  DRAFT
-  SCHEDULED
-  RUNNING
-  DONE
-  CANCELLED
+  DRAFT      // Campaign being created
+  SCHEDULED  // Campaign scheduled for future
+  RUNNING    // Campaign currently sending
+  DONE       // Campaign completed
+  CANCELLED  // Campaign cancelled
 }
 
+// Email event types from Mailjet webhooks
 enum EmailEventType {
-  DELIVERED
-  OPEN
-  CLICK
-  BOUNCE
-  COMPLAINT
-  UNSUBSCRIBE
+  DELIVERED    // Email delivered to recipient
+  OPEN         // Email opened by recipient
+  CLICK        // Link clicked in email
+  BOUNCE       // Email bounced (hard/soft)
+  COMPLAINT    // Spam complaint
+  UNSUBSCRIBE  // Recipient unsubscribed
 }
 
+// AI content generation job types
 enum AIJobType {
-  IMAGE
-  VIDEO
+  IMAGE  // AI-generated product images
+  VIDEO  // AI-generated product videos
 }
 
+// AI job processing status
 enum AIJobStatus {
-  QUEUED
-  RUNNING
-  SUCCEEDED
-  FAILED
+  QUEUED     // Job waiting in queue
+  RUNNING    // Job currently processing
+  SUCCEEDED  // Job completed successfully
+  FAILED     // Job failed with error
 }
 
+// User roles for RBAC (Role-Based Access Control)
 enum RoleName {
-  ADMIN
-  MANAGER
-  PARTNER
+  ADMIN     // Full system access
+  MANAGER   // Limited admin access
+  PARTNER   // Store-specific access only
 }
 
+// ============================================================================
+// USER MANAGEMENT & AUTHENTICATION
+// ============================================================================
+
+// Users table - integrates with Firebase Auth
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
@@ -66,15 +80,24 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  // Many-to-many relationship with roles
   roles UserRole[]
+
+  @@map("users")
 }
 
+// Roles for RBAC system
 model Role {
   id    String   @id @default(cuid())
   name  RoleName @unique
+  
+  // Many-to-many relationship with users
   users UserRole[]
+
+  @@map("roles")
 }
 
+// Junction table for user-role many-to-many relationship
 model UserRole {
   id     String @id @default(cuid())
   userId String
@@ -84,26 +107,39 @@ model UserRole {
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@map("user_roles")
 }
 
-/** Multi-store */
+// ============================================================================
+// MULTI-STORE MANAGEMENT
+// ============================================================================
+
+// E-commerce stores (WooCommerce, Shopify)
 model Store {
   id        String        @id @default(cuid())
   name      String
   platform  StorePlatform
   domain    String
-  // OAuth / keys (nên mã hoá app-side trước khi lưu)
+  // OAuth tokens/API keys (should be encrypted before storing)
   settings  Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relationships
   products  StoreProductMap[]
   orders    Order[]
   customers StoreCustomerMap[]
+  credentials IntegrationCredential[]
+
+  @@map("stores")
 }
 
-/** Chuẩn hoá Brand */
+// ============================================================================
+// PRODUCT CATALOG MANAGEMENT
+// ============================================================================
+
+// Normalized brand data across all stores
 model Brand {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -111,108 +147,142 @@ model Brand {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relationships
   products  Product[]
+  orders    Order[]
+  campaigns Campaign[]
+
+  @@map("brands")
 }
 
-/** Product chuẩn hoá + raw payload để giữ nguyên nguồn */
+// Normalized product data + raw payload from source platforms
 model Product {
   id         String           @id @default(cuid())
   title      String
   description String?
   brandId    String?
-  brand      Brand?           @relation(fields: [brandId], references: [id])
-  rawPayload Json             // JSONB
+  
+  // Raw data from source platform (WooCommerce/Shopify)
+  rawPayload Json             // JSONB for flexible data storage
 
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
+  // Relationships
+  brand      Brand?           @relation(fields: [brandId], references: [id])
   variants   ProductVariant[]
   maps       StoreProductMap[]
+  orderItems OrderItem[]
+
+  @@map("products")
 }
 
+// Product variants (SKU, price variations)
 model ProductVariant {
   id          String   @id @default(cuid())
   productId   String
   sku         String?
   price       Decimal?
   currency    String?
-  rawPayload  Json?
+  rawPayload  Json?    // Variant-specific data from source
 
+  // Relationships
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
 
   @@index([sku])
+  @@map("product_variants")
 }
 
+// Maps products to stores (handles multi-store products)
 model StoreProductMap {
   id         String  @id @default(cuid())
   storeId    String
   productId  String
-  externalId String  // id sản phẩm ở store nguồn (Woo/Shopify)
+  externalId String  // Product ID in source store (WooCommerce/Shopify)
 
+  // Relationships
   store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, externalId])
+  @@map("store_product_maps")
 }
 
-/** Customer chuẩn hoá, hỗ trợ multi email/phone nếu cần */
+// ============================================================================
+// CUSTOMER MANAGEMENT
+// ============================================================================
+
+// Normalized customer data supporting multiple emails/phones
 model Customer {
   id         String   @id @default(cuid())
   name       String?
-  emails     String[] // mảng email
-  phones     String[] // mảng phone
-  acceptsMk  Boolean  @default(false)
-  tags       String[]
-  rawPayload Json?
+  emails     String[] // Array of email addresses
+  phones     String[] // Array of phone numbers
+  acceptsMk  Boolean  @default(false) // Marketing acceptance
+  tags       String[] // Customer segmentation tags
+  rawPayload Json?    // Additional data from source platforms
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  // Relationships
   orders     Order[]
   maps       StoreCustomerMap[]
+
+  @@map("customers")
 }
 
+// Maps customers to stores (handles multi-store customers)
 model StoreCustomerMap {
   id         String @id @default(cuid())
   storeId    String
   customerId String
-  externalId String   // id khách hàng ở store
+  externalId String   // Customer ID in source store
 
+  // Relationships
   store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, externalId])
+  @@map("store_customer_maps")
 }
 
-/** Order + OrderItem */
+// ============================================================================
+// ORDER MANAGEMENT & TRACKING
+// ============================================================================
+
+// Orders from e-commerce platforms
 model Order {
   id         String   @id @default(cuid())
   storeId    String
   customerId String?
-  status     String
-  total      Decimal
-  currency   String
+  status     String   // Order status from source platform
+  total      Decimal  // Order total amount
+  currency   String   // Currency code (USD, VND, etc.)
 
-  brandId    String?
-  brand      Brand?   @relation(fields: [brandId], references: [id])
-
-  externalId String   // order id của store
-  rawPayload Json
+  brandId    String?  // Associated brand (optional)
+  externalId String   // Order ID from source platform
+  rawPayload Json     // Complete order data from source
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  store   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customer Customer? @relation(fields: [customerId], references: [id])
-
-  items   OrderItem[]
-  shipment Shipment?
-  events  OrderEvent[]
+  // Relationships
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  brand     Brand?    @relation(fields: [brandId], references: [id])
+  items     OrderItem[]
+  shipment  Shipment?
+  events    OrderEvent[]
 
   @@unique([storeId, externalId])
   @@index([status])
+  @@index([createdAt])
+  @@map("orders")
 }
 
+// Individual items within an order
 model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
@@ -221,80 +291,112 @@ model OrderItem {
   quantity  Int
   price     Decimal?
   currency  String?
+  rawPayload Json?   // Item-specific data from source
 
-  rawPayload Json?
-
+  // Relationships
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product?       @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
 }
 
+// Order lifecycle events for audit trail
 model OrderEvent {
   id        String   @id @default(cuid())
   orderId   String
-  type      String
-  payload   Json?
+  type      String   // Event type (status_change, payment, etc.)
+  payload   Json?    // Event-specific data
   createdAt DateTime @default(now())
 
+  // Relationships
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId, type])
+  @@index([createdAt])
+  @@map("order_events")
 }
 
-/** Shipment + TrackingEvent */
+// ============================================================================
+// SHIPMENT & LOGISTICS TRACKING
+// ============================================================================
+
+// Shipment tracking information from providers (AfterShip, 17Track)
 model Shipment {
   id             String         @id @default(cuid())
   orderId        String         @unique
-  carrier        String
-  trackingNumber String
+  carrier        String         // Shipping carrier code
+  trackingNumber String         // Tracking number from carrier
   status         ShipmentStatus @default(UNKNOWN)
-  lastCheckedAt  DateTime?
+  lastCheckedAt  DateTime?      // Last time tracking was updated
 
+  // Relationships
   order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   events  TrackingEvent[]
+
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shipments")
 }
 
+// Individual tracking events in shipment journey
 model TrackingEvent {
   id          String         @id @default(cuid())
   shipmentId  String
   status      ShipmentStatus
-  description String?
-  location    String?
-  occurredAt  DateTime
-  rawPayload  Json?
+  description String?        // Event description from provider
+  location    String?        // Location where event occurred
+  occurredAt  DateTime       // When the event happened
+  rawPayload  Json?          // Complete data from tracking provider
 
+  // Relationships
   shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
 
   @@index([shipmentId, occurredAt])
+  @@map("tracking_events")
 }
 
-/** Email Marketing */
+// ============================================================================
+// EMAIL MARKETING & CAMPAIGNS
+// ============================================================================
+
+// Email templates for marketing campaigns
 model EmailTemplate {
   id        String   @id @default(cuid())
   name      String   @unique
   subject   String
-  bodyMjml  String?  // tùy chọn MJML
-  bodyHtml  String?  // compiled
+  bodyMjml  String?  // MJML template source
+  bodyHtml  String?  // Compiled HTML version
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relationships
+  campaigns Campaign[]
+
+  @@map("email_templates")
 }
 
+// Marketing campaigns targeting customer segments
 model Campaign {
   id          String         @id @default(cuid())
   name        String
-  brandId     String?
-  brand       Brand?         @relation(fields: [brandId], references: [id])
-  segmentSql  String         // hoặc JSON rule tree
+  brandId     String?        // Brand-specific campaigns
+  segmentSql  String         // SQL query for customer segmentation
   templateId  String
   status      CampaignStatus @default(DRAFT)
-  scheduledAt DateTime?
+  scheduledAt DateTime?      // When to send the campaign
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  // Relationships
+  brand     Brand?        @relation(fields: [brandId], references: [id])
   template  EmailTemplate @relation(fields: [templateId], references: [id])
   sends     EmailSend[]
+
+  @@map("campaigns")
 }
 
+// Individual email sends within a campaign
 model EmailSend {
   id          String   @id @default(cuid())
   campaignId  String
@@ -302,49 +404,72 @@ model EmailSend {
   subject     String
   bodyHtml    String
   status      String    // queued/sent/failed
-  providerId  String?   // id bên Mailjet
+  providerId  String?   // ID from email provider (Mailjet)
   createdAt   DateTime  @default(now())
 
+  // Relationships
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   events   EmailEvent[]
+
+  @@index([campaignId, status])
+  @@map("email_sends")
 }
 
+// Email engagement events from provider webhooks
 model EmailEvent {
   id         String        @id @default(cuid())
   emailSendId String
   type       EmailEventType
-  meta       Json?
+  meta       Json?         // Event metadata from provider
   createdAt  DateTime @default(now())
 
+  // Relationships
   emailSend EmailSend @relation(fields: [emailSendId], references: [id], onDelete: Cascade)
 
   @@index([emailSendId, type])
+  @@index([type, createdAt])
+  @@map("email_events")
 }
 
-/** AI pipeline (ảnh/video) */
+// ============================================================================
+// AI CONTENT GENERATION
+// ============================================================================
+
+// AI-powered content generation jobs (images, videos)
 model AIJob {
   id          String      @id @default(cuid())
-  type        AIJobType
-  promptIn    String
-  promptOut   String?
+  type        AIJobType   // IMAGE or VIDEO generation
+  promptIn    String      // Input prompt for AI
+  promptOut   String?     // Generated/refined prompt
   status      AIJobStatus @default(QUEUED)
-  outputUrl   String?
-  driveFileId String?
-  meta        Json?
+  outputUrl   String?     // URL to generated content
+  driveFileId String?     // Google Drive file ID
+  meta        Json?       // Additional metadata
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([type, status])
+  @@map("ai_jobs")
 }
 
-/** Lưu secret/credential từng integration (mã hoá ở app) */
+// ============================================================================
+// INTEGRATION CREDENTIALS & SECRETS
+// ============================================================================
+
+// Encrypted storage for third-party integration credentials
 model IntegrationCredential {
   id        String   @id @default(cuid())
-  storeId   String?
-  provider  String   // "mailjet", "aftership", "17track", "gemini", "drive"
-  data      Json     // encrypted json
+  storeId   String?  // Store-specific credentials (optional)
+  provider  String   // Provider name: "mailjet", "aftership", "17track", "gemini", "drive"
+  data      Json     // Encrypted JSON containing API keys, tokens, etc.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relationships
   store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
 
   @@index([storeId, provider])
+  @@unique([storeId, provider]) // Prevent duplicate credentials per store-provider
+  @@map("integration_credentials")
 }

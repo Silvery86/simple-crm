@@ -40,4 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma generated files
 /src/generated/prisma
+
+# documentation files (exclude from git)
+copilot.instruction.md
