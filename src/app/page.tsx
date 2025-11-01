@@ -1,10 +1,8 @@
-import Link from "next/link";
+import { redirect } from 'next/navigation';
 
-export default function Home() {
-  return (
-     <main className="p-6">
-      <h1 className="text-xl font-semibold">Simple CRM</h1>
-      <p className="mt-2">Go to <Link className="underline" href="/(dashboard)">Dashboard</Link></p>
-    </main>
-  );
+/**
+ * Purpose: Root page that redirects to Vietnamese by default.
+ */
+export default function HomePage() {
+  redirect('/vi');
 }

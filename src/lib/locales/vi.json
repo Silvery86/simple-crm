@@ -1,0 +1,86 @@
+{
+  "page": {
+    "login": {
+      "title": "Đăng nhập",
+      "subtitle": "Đăng nhập vào Simple CRM System",
+      "googleButton": "Đăng nhập với Google",
+      "orText": "Hoặc",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your.email@example.com",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "••••••••",
+      "loginButton": "Đăng nhập",
+      "loggingIn": "Đang đăng nhập...",
+      "errors": {
+        "userNotFound": "toast.error.loginFailed",
+        "wrongPassword": "toast.error.loginFailed", 
+        "invalidEmail": "Định dạng email không hợp lệ",
+        "userDisabled": "Tài khoản đã bị vô hiệu hóa",
+        "tooManyRequests": "Quá nhiều lần thử. Vui lòng thử lại sau",
+        "popupClosed": "Cửa sổ đăng nhập đã bị đóng",
+        "default": "toast.error.unknownError"
+      }
+    },
+    "dashboard": {
+      "title": "Simple CRM Dashboard",
+      "welcome": "Chào mừng trở lại",
+      "logoutButton": "Đăng xuất",
+      "userInfo": {
+        "title": "Thông tin tài khoản",
+        "description": "Chi tiết tài khoản của bạn",
+        "email": "Email",
+        "name": "Tên",
+        "id": "ID",
+        "status": "Trạng thái",
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động"
+      },
+      "roles": {
+        "title": "Quyền hạn",
+        "description": "Các vai trò được phân quyền",
+        "noRoles": "Chưa được phân quyền. Liên hệ admin để được cấp quyền."
+      },
+      "systemStatus": {
+        "title": "Trạng thái hệ thống",
+        "description": "Authentication system đã được thiết lập thành công",
+        "firebaseAuth": "Firebase Auth",
+        "database": "Database",
+        "session": "Session",
+        "active": "✅ Hoạt động",
+        "connected": "✅ Kết nối",
+        "valid": "✅ Hợp lệ"
+      }
+    }
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "language": "Ngôn ngữ",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "toast": {
+    "success": {
+      "title": "Thành công",
+      "loginSuccess": "Đăng nhập thành công",
+      "logoutSuccess": "Đăng xuất thành công",
+      "savedSuccess": "Lưu thành công"
+    },
+    "error": {
+      "title": "Lỗi",
+      "loginFailed": "Đăng nhập thất bại",
+      "networkError": "Lỗi kết nối mạng",
+      "serverError": "Lỗi máy chủ",
+      "unknownError": "Đã xảy ra lỗi không xác định"
+    },
+    "warning": {
+      "title": "Cảnh báo",
+      "sessionExpiring": "Phiên đăng nhập sắp hết hạn",
+      "unsavedChanges": "Có thay đổi chưa được lưu"
+    },
+    "info": {
+      "title": "Thông tin",
+      "loading": "Đang tải dữ liệu",
+      "processing": "Đang xử lý"
+    }
+  }
+}

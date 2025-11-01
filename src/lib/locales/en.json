@@ -1,0 +1,86 @@
+{
+  "page": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Sign in to Simple CRM System",
+      "googleButton": "Sign in with Google",
+      "orText": "Or",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your.email@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "loginButton": "Sign In",
+      "loggingIn": "Signing in...",
+      "errors": {
+        "userNotFound": "toast.error.loginFailed",
+        "wrongPassword": "toast.error.loginFailed",
+        "invalidEmail": "Invalid email format",
+        "userDisabled": "Account has been disabled",
+        "tooManyRequests": "Too many attempts. Please try again later",
+        "popupClosed": "Login popup was closed",
+        "default": "toast.error.unknownError"
+      }
+    },
+    "dashboard": {
+      "title": "Simple CRM Dashboard",
+      "welcome": "Welcome back",
+      "logoutButton": "Sign Out",
+      "userInfo": {
+        "title": "Account Information",
+        "description": "Your account details",
+        "email": "Email",
+        "name": "Name",
+        "id": "ID",
+        "status": "Status",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "roles": {
+        "title": "Permissions",
+        "description": "Assigned roles and permissions",
+        "noRoles": "No roles assigned. Contact admin for role assignment."
+      },
+      "systemStatus": {
+        "title": "System Status",
+        "description": "Authentication system successfully configured",
+        "firebaseAuth": "Firebase Auth",
+        "database": "Database",
+        "session": "Session",
+        "active": "✅ Active",
+        "connected": "✅ Connected",
+        "valid": "✅ Valid"
+      }
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "language": "Language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "toast": {
+    "success": {
+      "title": "Success",
+      "loginSuccess": "Login successful",
+      "logoutSuccess": "Logout successful",
+      "savedSuccess": "Saved successfully"
+    },
+    "error": {
+      "title": "Error",
+      "loginFailed": "Login failed",
+      "networkError": "Network connection error",
+      "serverError": "Server error",
+      "unknownError": "An unknown error occurred"
+    },
+    "warning": {
+      "title": "Warning",
+      "sessionExpiring": "Session is about to expire",
+      "unsavedChanges": "You have unsaved changes"
+    },
+    "info": {
+      "title": "Information",
+      "loading": "Loading data",
+      "processing": "Processing"
+    }
+  }
+}
