@@ -45,3 +45,5 @@ next-env.d.ts
 
 # documentation files (exclude from git)
 copilot.instruction.md
+docs/
+
