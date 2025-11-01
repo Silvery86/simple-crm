@@ -159,3 +159,204 @@ simple-crm/
 - **Shared type definitions across app**
 - **API contracts and response types**
 - **Database model extensions**
+
+## 🌐 Translation System
+
+### Overview
+
+The application supports bilingual UI (Vietnamese and English) with a complete translation system. All static text is translated using a centralized translation management system.
+
+### Key Architecture
+
+```
+Component (uses t())
+    ↓
+LanguageProvider/useLang Hook
+    ↓
+API Endpoint: /api/locales/[lang]
+    ↓
+Locale Files: src/lib/locales/[en|vi].json
+    ↓
+localStorage Cache: translations_[lang]
+```
+
+### Translation Files
+
+- **`src/lib/locales/en.json`** - English translations
+- **`src/lib/locales/vi.json`** - Vietnamese translations
+
+### Key Naming Convention
+
+All translation keys follow this structure: `category.subcategory.type[.purpose]`
+
+```
+page.login.title              → "Sign In"
+page.dashboard.welcome        → "Welcome back"
+common.loading                → "Loading..."
+errors.auth.invalidEmail      → "Invalid email address"
+validation.required           → "This field is required"
+toast.success.loginSuccess    → "Login successful"
+toast.error.unknownError      → "An unknown error occurred"
+```
+
+### Categories
+
+| Category | Purpose | Examples |
+|----------|---------|----------|
+| **page** | Page-specific content | `page.login.title`, `page.dashboard.welcome` |
+| **common** | Shared UI elements | `common.loading`, `common.logout` |
+| **errors** | Error messages | `errors.auth.invalidEmail`, `errors.api.serverError` |
+| **validation** | Form validation | `validation.required`, `validation.email` |
+| **toast** | Notifications | `toast.success.loginSuccess`, `toast.error.unknownError` |
+| **sidebar** | Navigation items | `sidebar.dashboard`, `sidebar.orders` |
+| **breadcrumb** | Breadcrumbs | `breadcrumb.home`, `breadcrumb.dashboard` |
+
+### Usage Examples
+
+#### 1. Page Content (Text, Headings, Labels)
+
+```typescript
+import { useLang } from '@/lib/hooks/useLang';
+
+export default function LoginPage() {
+  const { t, isLoading } = useLang();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <div>
+      <h1>{t('page.login.title')}</h1>
+      <label>{t('page.login.emailLabel')}</label>
+      <input placeholder={t('page.login.emailPlaceholder')} />
+      <button>{t('page.login.loginButton')}</button>
+    </div>
+  );
+}
+```
+
+#### 2. Toast Notifications
+
+```typescript
+import { useToast } from '@/components/ui/toast';
+
+const toast = useToast();
+
+// Success notification
+toast.success('toast.success.title', 'toast.success.loginSuccess');
+
+// Error notification
+toast.error('toast.error.title', 'errors.auth.invalidEmail');
+
+// Warning notification
+toast.warning('toast.warning.title', 'toast.warning.sessionExpiring');
+```
+
+**Important:** Pass translation keys (not translated text) to toast functions. The toast component automatically translates keys internally.
+
+#### 3. Error Handling
+
+```typescript
+import { handleApiError } from '@/lib/utils/error-translator';
+
+try {
+  // ... API call ...
+} catch (error) {
+  const errorMessage = handleApiError(error, t);
+  toast.error('toast.error.title', errorMessage);
+}
+```
+
+#### 4. Form Validation
+
+```typescript
+import { useForm } from 'react-hook-form';
+
+const { register, formState: { errors } } = useForm();
+
+<input
+  {...register('email', {
+    required: t('validation.required'),
+    pattern: {
+      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      message: t('validation.email')
+    }
+  })}
+/>
+```
+
+### Adding New Translations
+
+Follow these steps to add new translation keys:
+
+1. **Determine category** (page, common, errors, toast, etc.)
+2. **Add to `src/lib/locales/en.json`**
+   ```json
+   {
+     "page": {
+       "newPage": {
+         "title": "New Page Title"
+       }
+     }
+   }
+   ```
+3. **Add to `src/lib/locales/vi.json`** (same structure with Vietnamese text)
+   ```json
+   {
+     "page": {
+       "newPage": {
+         "title": "Tiêu đề Trang Mới"
+       }
+     }
+   }
+   ```
+4. **Use in component:** `{t('page.newPage.title')}`
+5. **Test in both languages** - Clear localStorage and reload
+   ```javascript
+   localStorage.clear();
+   location.reload();
+   ```
+
+### Language Switching
+
+```typescript
+import { useLang } from '@/lib/hooks/useLang';
+
+export default function LanguageSwitcher() {
+  const { lang, setLanguage } = useLang();
+
+  return (
+    <>
+      <button onClick={() => setLanguage('en')}>English</button>
+      <button onClick={() => setLanguage('vi')}>Vietnamese</button>
+    </>
+  );
+}
+```
+
+### Translation Loading
+
+- **First load:** Translations are fetched from `/api/locales/[lang]` and cached in localStorage
+- **Subsequent loads:** Cached translations are used for instant loading
+- **Language switch:** New language translations are fetched and cached
+
+### Best Practices
+
+✅ **DO:**
+- Always add translations in pairs (both en.json and vi.json)
+- Use lowercase with dots: `page.login.title` (not `PAGE_LOGIN_TITLE`)
+- Use camelCase for multi-word keys: `loginSuccess` (not `login_success`)
+- Group related keys together in JSON
+- Wait for `isLoading` to be false before using `t()`
+- Pass translation keys to toast (not translated text)
+- Test with both EN and VI languages
+
+❌ **DON'T:**
+- Create only one-sided translations
+- Use UPPERCASE or snake_case for keys
+- Mix languages in keys
+- Create deeply nested structures (>4 levels)
+- Use generic names like "error" or "message"
+- Call `t()` before translations are loaded
+

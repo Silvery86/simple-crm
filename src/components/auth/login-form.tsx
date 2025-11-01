@@ -63,14 +63,14 @@ export default function LoginForm() {
       });
 
       if (response.ok) {
-        toast.success('toast.success.title', t('toast.success.loginSuccess'));
+        toast.success('toast.success.title', 'toast.success.loginSuccess');
         handleLoginSuccess();
       } else {
         throw new Error('Login failed');
       }
     } catch (error: any) {
       const errorMessage = handleApiError(error, t);
-      toast.error(t('toast.error.title'), errorMessage);
+      toast.error('toast.error.title', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -99,14 +99,14 @@ export default function LoginForm() {
       });
 
       if (response.ok) {
-        toast.success('toast.success.title', t('toast.success.loginSuccess'));
+        toast.success('toast.success.title', 'toast.success.loginSuccess');
         handleLoginSuccess();
       } else {
         throw new Error('Login failed');
       }
     } catch (error: any) {
       const errorMessage = handleApiError(error, t);
-      toast.error(t('toast.error.title'), errorMessage);
+      toast.error('toast.error.title', errorMessage);
     } finally {
       setLoading(false);
     }

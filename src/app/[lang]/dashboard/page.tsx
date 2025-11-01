@@ -109,10 +109,10 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Shield className="mr-2 h-5 w-5" />
-              {t('page.dashboard.roles.title')}
+              {t('page.dashboard.roleDetails.title')}
             </CardTitle>
             <CardDescription>
-              {t('page.dashboard.roles.description')}
+              {t('page.dashboard.roleDetails.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -129,7 +129,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {t('page.dashboard.roles.noRoles')}
+                {t('page.dashboard.roleDetails.noRoles')}
               </p>
             )}
           </CardContent>
@@ -138,24 +138,24 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         {/* System Status Card */}
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>{t('page.dashboard.systemStatus.title')}</CardTitle>
+            <CardTitle>{t('page.dashboard.systemStatusDetail.title')}</CardTitle>
             <CardDescription>
-              {t('page.dashboard.systemStatus.description')}
+              {t('page.dashboard.systemStatusDetail.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium">{t('page.dashboard.systemStatus.firebaseAuth')}</p>
-                <p className="text-xs text-green-600">{t('page.dashboard.systemStatus.active')}</p>
+                <p className="text-sm font-medium">{t('page.dashboard.systemStatusDetail.firebaseAuth')}</p>
+                <p className="text-xs text-green-600">{t('page.dashboard.systemStatusDetail.active')}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">{t('page.dashboard.systemStatus.database')}</p>
-                <p className="text-xs text-green-600">{t('page.dashboard.systemStatus.connected')}</p>
+                <p className="text-sm font-medium">{t('page.dashboard.systemStatusDetail.database')}</p>
+                <p className="text-xs text-green-600">{t('page.dashboard.systemStatusDetail.connected')}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">{t('page.dashboard.systemStatus.session')}</p>
-                <p className="text-xs text-green-600">{t('page.dashboard.systemStatus.valid')}</p>
+                <p className="text-sm font-medium">{t('page.dashboard.systemStatusDetail.session')}</p>
+                <p className="text-xs text-green-600">{t('page.dashboard.systemStatusDetail.valid')}</p>
               </div>
             </div>
           </CardContent>

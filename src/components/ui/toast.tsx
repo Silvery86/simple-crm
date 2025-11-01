@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { useLang } from '@/lib/hooks/useLang';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
@@ -188,9 +188,31 @@ function ToastContainer() {
  * Returns:
  *   - JSX.Element — Styled toast notification.
  */
+function isTranslationKey(value: string): boolean {
+  // Translation keys follow the pattern: word.word.word (dot notation)
+  // Check if it looks like a translation key
+  return /^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value) && value.includes('.');
+}
+
 function ToastItem({ toast }: { toast: Toast }) {
   const { removeToast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+
+  // Debug logging
+  useEffect(() => {
+    const titleResult = isTranslationKey(toast.titleKey) ? t(toast.titleKey) : toast.titleKey;
+    const messageResult = isTranslationKey(toast.messageKey) ? t(toast.messageKey) : toast.messageKey;
+    
+    console.log('[Toast Debug]', {
+      lang,
+      titleKey: toast.titleKey,
+      titleIsKey: isTranslationKey(toast.titleKey),
+      titleResult,
+      messageKey: toast.messageKey,
+      messageIsKey: isTranslationKey(toast.messageKey),
+      messageResult,
+    });
+  }, [toast, t, lang]);
 
   /**
    * Purpose: Get appropriate icon based on toast type.
@@ -244,10 +266,10 @@ function ToastItem({ toast }: { toast: Toast }) {
         {getIcon()}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold text-foreground">
-            {t(toast.titleKey)}
+            {isTranslationKey(toast.titleKey) ? t(toast.titleKey) : toast.titleKey}
           </h4>
           <p className="text-sm text-muted-foreground mt-1">
-            {t(toast.messageKey)}
+            {isTranslationKey(toast.messageKey) ? t(toast.messageKey) : toast.messageKey}
           </p>
         </div>
         <button
