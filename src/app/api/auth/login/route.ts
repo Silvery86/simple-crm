@@ -39,18 +39,52 @@ export async function POST(request: NextRequest) {
     const userRepository = RepositoryFactory.getUserRepository();
     let user = await userRepository.findByFirebaseUid(uid);
 
+    // If not found by firebaseUid, try to find by email (fallback for existing users)
     if (!user) {
+      user = await userRepository.findByEmail(email);
+    }
+
+    // Check if email is admin email from environment variable
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdminEmail = adminEmail && email.toLowerCase() === adminEmail.toLowerCase();
+
+    if (!user) {
+      // Create new user with ADMIN role if email matches ADMIN_EMAIL
+      let roleIds: string[] = [];
+      
+      if (isAdminEmail) {
+        // Find ADMIN role by name to get its ID
+        const roleRepository = RepositoryFactory.getRoleRepository?.();
+        if (roleRepository) {
+          const adminRole = await roleRepository.findByName('ADMIN');
+          if (adminRole) {
+            roleIds = [adminRole.id];
+          }
+        }
+      }
+      
       user = await userRepository.create({
         email,
         name: name || email.split('@')[0],
         firebaseUid: uid,
-        roleIds: [],
+        roleIds,
       });
+    } else if (isAdminEmail && !user.userRoles.some(ur => ur.role.name === 'ADMIN')) {
+      // Existing user but not admin - add ADMIN role if email matches
+      const roleRepository = RepositoryFactory.getRoleRepository?.();
+      if (roleRepository) {
+        const adminRole = await roleRepository.findByName('ADMIN');
+        if (adminRole) {
+          await userRepository.addRole(user.id, adminRole.id);
+          // Refresh user data to include new role
+          user = await userRepository.findById(user.id);
+        }
+      }
     }
 
     const customClaims = {
-      userId: user.id,
-      roles: user.userRoles.map(ur => ur.role.name),
+      userId: user!.id,
+      roles: user!.userRoles.map(ur => ur.role.name),
     };
 
     await adminAuth.setCustomUserClaims(uid, customClaims);
@@ -61,10 +95,10 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        roles: user.userRoles.map(ur => ur.role.name),
+        id: user!.id,
+        email: user!.email,
+        name: user!.name,
+        roles: user!.userRoles.map(ur => ur.role.name),
       },
     });
 
@@ -79,6 +113,23 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Handle Prisma-specific errors
+    if (error instanceof Error) {
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'Database configuration error: Missing role' },
+          { status: 500 }
+        );
+      }
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          { error: 'Email already exists' },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Authentication failed' },
       { status: 401 }

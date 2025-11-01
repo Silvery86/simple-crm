@@ -9,7 +9,7 @@ type Language = 'vi' | 'en';
 
 interface LanguageLayoutProps {
   children: ReactNode;
-  params: Promise<{ lang: Language }>;
+  params: Promise<{ lang: string }>;
 }
 
 /**
@@ -19,9 +19,10 @@ export default function LanguageLayout({ children, params }: LanguageLayoutProps
   const pathname = usePathname();
   const currentLang = extractLangFromPath(pathname);
   const resolvedParams = use(params);
+  const lang = (resolvedParams.lang as Language) || currentLang;
 
   return (
-    <LanguageProvider initialLang={resolvedParams.lang || currentLang}>
+    <LanguageProvider initialLang={lang}>
       <ToastProvider>
         {children}
       </ToastProvider>

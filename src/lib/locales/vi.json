@@ -25,6 +25,22 @@
       "title": "Simple CRM Dashboard",
       "welcome": "Chào mừng trở lại",
       "logoutButton": "Đăng xuất",
+      "subtitle": "Đây là tổng quan kinh doanh của bạn",
+      "totalOrders": "Tổng đơn hàng",
+      "thisMonth": "Tháng này",
+      "totalCustomers": "Tổng khách hàng",
+      "registered": "Đã đăng ký",
+      "revenue": "Doanh thu",
+      "pendingOrders": "Đơn hàng chờ xử lý",
+      "awaiting": "Chờ xử lý",
+      "accountInfo": "Thông tin tài khoản",
+      "accountDetails": "Chi tiết tài khoản và quyền hạn của bạn",
+      "name": "Tên",
+      "roles": "Quyền hạn",
+      "roleDescription": "Các vai trò được phân quyền",
+      "noRoles": "Chưa được phân quyền. Liên hệ admin để được cấp quyền.",
+      "systemStatus": "Trạng thái hệ thống",
+      "systemStatusDesc": "Trạng thái xác thực và cơ sở dữ liệu",
       "userInfo": {
         "title": "Thông tin tài khoản",
         "description": "Chi tiết tài khoản của bạn",
@@ -35,17 +51,17 @@
         "active": "Hoạt động",
         "inactive": "Không hoạt động"
       },
-      "roles": {
+      "roleDetails": {
         "title": "Quyền hạn",
         "description": "Các vai trò được phân quyền",
         "noRoles": "Chưa được phân quyền. Liên hệ admin để được cấp quyền."
       },
-      "systemStatus": {
+      "systemStatusDetail": {
         "title": "Trạng thái hệ thống",
         "description": "Authentication system đã được thiết lập thành công",
         "firebaseAuth": "Firebase Auth",
-        "database": "Database",
-        "session": "Session",
+        "database": "Cơ sở dữ liệu",
+        "session": "Phiên",
         "active": "✅ Hoạt động",
         "connected": "✅ Kết nối",
         "valid": "✅ Hợp lệ"
@@ -56,7 +72,20 @@
     "loading": "Đang tải...",
     "language": "Ngôn ngữ",
     "vietnamese": "Tiếng Việt",
-    "english": "English"
+    "english": "English",
+    "welcome": "Chào mừng",
+    "email": "Email",
+    "home": "Trang chủ",
+    "back": "Quay lại",
+    "tryAgain": "Thử lại",
+    "logout": "Đăng xuất",
+    "status": "Trạng thái",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "database": "Cơ sở dữ liệu",
+    "session": "Phiên",
+    "connected": "Đã kết nối",
+    "valid": "Hợp lệ"
   },
   "errors": {
     "auth": {
@@ -89,7 +118,15 @@
     "network": {
       "connectionFailed": "Kết nối mạng thất bại. Vui lòng kiểm tra kết nối internet",
       "timeout": "Hết thời gian chờ yêu cầu. Vui lòng thử lại"
-    }
+    },
+    "pageNotFound": "Trang không được tìm thấy",
+    "pageNotFoundDesc": "Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.",
+    "serverError": "Lỗi máy chủ",
+    "serverErrorDesc": "Có lỗi xảy ra ở phía chúng tôi. Vui lòng thử lại sau.",
+    "unauthorized": "Truy cập bị từ chối",
+    "unauthorizedDesc": "Bạn không có quyền truy cập tài nguyên này. Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là lỗi.",
+    "needHelp": "Cần giúp đỡ?",
+    "contactSupport": "Liên hệ hỗ trợ"
   },
   "validation": {
     "required": "Trường này là bắt buộc",

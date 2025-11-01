@@ -25,6 +25,22 @@
       "title": "Simple CRM Dashboard",
       "welcome": "Welcome back",
       "logoutButton": "Sign Out",
+      "subtitle": "Here's your business overview",
+      "totalOrders": "Total Orders",
+      "thisMonth": "This month",
+      "totalCustomers": "Total Customers",
+      "registered": "Registered",
+      "revenue": "Revenue",
+      "pendingOrders": "Pending Orders",
+      "awaiting": "Awaiting action",
+      "accountInfo": "Account Information",
+      "accountDetails": "Your account details and permissions",
+      "name": "Name",
+      "roles": "Roles",
+      "roleDescription": "Your assigned roles and permissions",
+      "noRoles": "No roles assigned. Contact admin for role assignment.",
+      "systemStatus": "System Status",
+      "systemStatusDesc": "Authentication and database status",
       "userInfo": {
         "title": "Account Information",
         "description": "Your account details",
@@ -35,12 +51,12 @@
         "active": "Active",
         "inactive": "Inactive"
       },
-      "roles": {
+      "roleDetails": {
         "title": "Permissions",
         "description": "Assigned roles and permissions",
         "noRoles": "No roles assigned. Contact admin for role assignment."
       },
-      "systemStatus": {
+      "systemStatusDetail": {
         "title": "System Status",
         "description": "Authentication system successfully configured",
         "firebaseAuth": "Firebase Auth",
@@ -56,7 +72,20 @@
     "loading": "Loading...",
     "language": "Language",
     "vietnamese": "Tiếng Việt",
-    "english": "English"
+    "english": "English",
+    "welcome": "Welcome",
+    "email": "Email",
+    "home": "Home",
+    "back": "Go Back",
+    "tryAgain": "Try Again",
+    "logout": "Logout",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "database": "Database",
+    "session": "Session",
+    "connected": "Connected",
+    "valid": "Valid"
   },
   "errors": {
     "auth": {
@@ -89,7 +118,15 @@
     "network": {
       "connectionFailed": "Network connection failed. Please check your internet",
       "timeout": "Request timeout. Please try again"
-    }
+    },
+    "pageNotFound": "Page Not Found",
+    "pageNotFoundDesc": "The page you're looking for doesn't exist or has been moved.",
+    "serverError": "Server Error",
+    "serverErrorDesc": "Something went wrong on our end. Please try again later.",
+    "unauthorized": "Access Denied",
+    "unauthorizedDesc": "You don't have permission to access this resource. Please contact an administrator if you believe this is a mistake.",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support"
   },
   "validation": {
     "required": "This field is required",
