@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { Loader2, Mail, Eye, EyeOff } from 'lucide-react';
+import { handleApiError } from '@/lib/utils/error-translator';
 
 /**
  * Purpose: Login form component with Google and Email/Password authentication.
@@ -62,14 +63,14 @@ export default function LoginForm() {
       });
 
       if (response.ok) {
-        toast.success('toast.success.title', 'toast.success.loginSuccess');
+        toast.success('toast.success.title', t('toast.success.loginSuccess'));
         handleLoginSuccess();
       } else {
         throw new Error('Login failed');
       }
     } catch (error: any) {
-      const errorMessage = getErrorMessage(error.code);
-      toast.error('toast.error.title', errorMessage);
+      const errorMessage = handleApiError(error, t);
+      toast.error(t('toast.error.title'), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -98,42 +99,16 @@ export default function LoginForm() {
       });
 
       if (response.ok) {
-        toast.success('toast.success.title', 'toast.success.loginSuccess');
+        toast.success('toast.success.title', t('toast.success.loginSuccess'));
         handleLoginSuccess();
       } else {
         throw new Error('Login failed');
       }
     } catch (error: any) {
-      const errorMessage = getErrorMessage(error.code);
-      toast.error('toast.error.title', errorMessage);
+      const errorMessage = handleApiError(error, t);
+      toast.error(t('toast.error.title'), errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  /**
-   * Purpose: Map Firebase error codes to localized translation keys.
-   * Params:
-   *   - errorCode: string — Firebase authentication error code.
-   * Returns:
-   *   - string — Translation key corresponding to the error.
-   */
-  const getErrorMessage = (errorCode: string): string => {
-    switch (errorCode) {
-      case 'auth/user-not-found':
-        return t('page.login.errors.userNotFound');
-      case 'auth/wrong-password':
-        return t('page.login.errors.wrongPassword');
-      case 'auth/invalid-email':
-        return t('page.login.errors.invalidEmail');
-      case 'auth/user-disabled':
-        return t('page.login.errors.userDisabled');
-      case 'auth/too-many-requests':
-        return t('page.login.errors.tooManyRequests');
-      case 'auth/popup-closed-by-user':
-        return t('page.login.errors.popupClosed');
-      default:
-        return t('page.login.errors.default');
     }
   };
 

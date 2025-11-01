@@ -58,19 +58,65 @@
     "vietnamese": "Tiếng Việt",
     "english": "English"
   },
+  "errors": {
+    "auth": {
+      "invalidEmail": "Invalid email address",
+      "userDisabled": "User account is disabled",
+      "userNotFound": "User account not found",
+      "wrongPassword": "Incorrect password",
+      "emailExists": "Email already in use",
+      "weakPassword": "Password is too weak. Please use at least 6 characters",
+      "operationNotAllowed": "This operation is not allowed",
+      "tooManyRequests": "Too many login attempts. Please try again later",
+      "invalidCredential": "Invalid email or password",
+      "popupClosed": "Sign in popup was closed",
+      "accountExists": "An account already exists with this email"
+    },
+    "api": {
+      "badRequest": "Invalid request data. Please check your input",
+      "unauthorized": "Authentication required. Please log in",
+      "forbidden": "Access denied. You don't have permission",
+      "notFound": "Resource not found",
+      "conflict": "This resource already exists",
+      "validationError": "Validation error. Please check your input",
+      "rateLimited": "Too many requests. Please wait before trying again",
+      "serverError": "Server error occurred. Please try again later",
+      "badGateway": "Service temporarily unavailable. Please try again",
+      "serviceUnavailable": "Service is under maintenance",
+      "gatewayTimeout": "Request timeout. Please try again",
+      "unknown": "An unexpected error occurred"
+    },
+    "network": {
+      "connectionFailed": "Network connection failed. Please check your internet",
+      "timeout": "Request timeout. Please try again"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "minLength": "Must be at least {min} characters",
+    "maxLength": "Must not exceed {max} characters",
+    "pattern": "Please enter a valid format"
+  },
   "toast": {
     "success": {
       "title": "Success",
       "loginSuccess": "Login successful",
       "logoutSuccess": "Logout successful",
-      "savedSuccess": "Saved successfully"
+      "savedSuccess": "Saved successfully",
+      "created": "Created successfully",
+      "updated": "Updated successfully",
+      "deleted": "Deleted successfully"
     },
     "error": {
       "title": "Error",
       "loginFailed": "Login failed",
+      "logoutFailed": "Logout failed",
       "networkError": "Network connection error",
       "serverError": "Server error",
-      "unknownError": "An unknown error occurred"
+      "unknownError": "An unknown error occurred",
+      "saveFailed": "Save failed",
+      "loadFailed": "Load failed"
     },
     "warning": {
       "title": "Warning",
@@ -82,5 +128,20 @@
       "loading": "Loading data",
       "processing": "Processing"
     }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "customers": "Customers",
+    "products": "Products",
+    "stores": "Stores",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "back": "Back"
   }
 }

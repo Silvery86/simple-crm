@@ -58,19 +58,65 @@
     "vietnamese": "Tiếng Việt",
     "english": "English"
   },
+  "errors": {
+    "auth": {
+      "invalidEmail": "Địa chỉ email không hợp lệ",
+      "userDisabled": "Tài khoản người dùng đã bị vô hiệu hóa",
+      "userNotFound": "Tài khoản không được tìm thấy",
+      "wrongPassword": "Mật khẩu không chính xác",
+      "emailExists": "Email đã được sử dụng",
+      "weakPassword": "Mật khẩu quá yếu. Vui lòng sử dụng ít nhất 6 ký tự",
+      "operationNotAllowed": "Thao tác này không được phép",
+      "tooManyRequests": "Quá nhiều lần đăng nhập. Vui lòng thử lại sau",
+      "invalidCredential": "Email hoặc mật khẩu không hợp lệ",
+      "popupClosed": "Cửa sổ đăng nhập đã bị đóng",
+      "accountExists": "Một tài khoản đã tồn tại với email này"
+    },
+    "api": {
+      "badRequest": "Dữ liệu yêu cầu không hợp lệ. Vui lòng kiểm tra đầu vào",
+      "unauthorized": "Yêu cầu xác thực. Vui lòng đăng nhập",
+      "forbidden": "Truy cập bị từ chối. Bạn không có quyền",
+      "notFound": "Tài nguyên không được tìm thấy",
+      "conflict": "Tài nguyên này đã tồn tại",
+      "validationError": "Lỗi xác thực. Vui lòng kiểm tra đầu vào",
+      "rateLimited": "Quá nhiều yêu cầu. Vui lòng chờ trước khi thử lại",
+      "serverError": "Lỗi máy chủ đã xảy ra. Vui lòng thử lại sau",
+      "badGateway": "Dịch vụ tạm thời không có sẵn. Vui lòng thử lại",
+      "serviceUnavailable": "Dịch vụ đang bảo trì",
+      "gatewayTimeout": "Hết thời gian chờ yêu cầu. Vui lòng thử lại",
+      "unknown": "Đã xảy ra lỗi không mong muốn"
+    },
+    "network": {
+      "connectionFailed": "Kết nối mạng thất bại. Vui lòng kiểm tra kết nối internet",
+      "timeout": "Hết thời gian chờ yêu cầu. Vui lòng thử lại"
+    }
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "email": "Vui lòng nhập địa chỉ email hợp lệ",
+    "minLength": "Phải có ít nhất {min} ký tự",
+    "maxLength": "Không được vượt quá {max} ký tự",
+    "pattern": "Vui lòng nhập định dạng hợp lệ"
+  },
   "toast": {
     "success": {
       "title": "Thành công",
       "loginSuccess": "Đăng nhập thành công",
       "logoutSuccess": "Đăng xuất thành công",
-      "savedSuccess": "Lưu thành công"
+      "savedSuccess": "Lưu thành công",
+      "created": "Tạo thành công",
+      "updated": "Cập nhật thành công",
+      "deleted": "Xóa thành công"
     },
     "error": {
       "title": "Lỗi",
       "loginFailed": "Đăng nhập thất bại",
+      "logoutFailed": "Đăng xuất thất bại",
       "networkError": "Lỗi kết nối mạng",
       "serverError": "Lỗi máy chủ",
-      "unknownError": "Đã xảy ra lỗi không xác định"
+      "unknownError": "Đã xảy ra lỗi không xác định",
+      "saveFailed": "Lưu thất bại",
+      "loadFailed": "Tải thất bại"
     },
     "warning": {
       "title": "Cảnh báo",
@@ -82,5 +128,20 @@
       "loading": "Đang tải dữ liệu",
       "processing": "Đang xử lý"
     }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "orders": "Đơn hàng",
+    "customers": "Khách hàng",
+    "products": "Sản phẩm",
+    "stores": "Cửa hàng",
+    "analytics": "Phân tích",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất"
+  },
+  "breadcrumb": {
+    "home": "Trang chủ",
+    "dashboard": "Dashboard",
+    "back": "Quay lại"
   }
 }
