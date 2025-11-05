@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 
 // Middleware configuration
 const PROTECTED_ROUTES = ['/[lang]/dashboard'];
 const AUTH_ROUTES = ['/[lang]/auth/login', '/[lang]/auth/signup'];
 const PUBLIC_ROUTES = ['/'];
-const DEFAULT_LANGUAGE = 'en';
+const DEFAULT_LANGUAGE = 'vi';
 const SUPPORTED_LANGUAGES = ['vi', 'en'];
-
-// JWT secret for session validation
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXT_PUBLIC_JWT_SECRET || 'development-secret-key-change-in-production'
-);
 
 type Language = 'vi' | 'en';
 
 /**
- * Purpose: Validate session token from cookies
+ * Purpose: Validate session token from cookies (Firebase session cookie)
  * Returns: Promise<{ valid: boolean; payload?: any; }>
+ * Note: We just check if the session cookie exists here.
+ * Full verification is done server-side by Firebase Admin SDK in API routes.
  */
 async function validateSession(token: string | undefined): Promise<{
   valid: boolean;
@@ -27,12 +23,9 @@ async function validateSession(token: string | undefined): Promise<{
     return { valid: false };
   }
 
-  try {
-    const verified = await jwtVerify(token, JWT_SECRET);
-    return { valid: true, payload: verified.payload };
-  } catch (error) {
-    return { valid: false };
-  }
+  // Session cookie exists, consider it valid
+  // The actual verification will be done by Firebase Admin SDK in protected routes
+  return { valid: true, payload: {} };
 }
 
 /**
@@ -52,7 +45,7 @@ function extractLanguage(pathname: string, cookies: any): Language {
     return cookieLang as Language;
   }
 
-  // Default to English
+  // Default to Vietnamese
   return DEFAULT_LANGUAGE as Language;
 }
 
@@ -127,7 +120,7 @@ export async function middleware(request: NextRequest) {
   // Handle protected routes
   if (isProtectedRoute(pathname)) {
     const sessionToken = cookies.get('session')?.value;
-    const { valid, payload } = await validateSession(sessionToken);
+    const { valid } = await validateSession(sessionToken);
 
     if (!valid) {
       // Redirect to login
@@ -135,23 +128,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Validate user role for dashboard access
-    const userRole = (payload?.role as string) || 'PARTNER';
-
-    // Allowed roles for dashboard: ADMIN, MANAGER, PARTNER
-    const allowedRoles = ['ADMIN', 'MANAGER', 'PARTNER'];
-    if (!allowedRoles.includes(userRole)) {
-      // Redirect to unauthorized page (will be handled by error page)
-      const baseUrl = request.nextUrl.clone();
-      baseUrl.pathname = `/${language}/unauthorized`;
-      return NextResponse.redirect(baseUrl.toString());
-    }
-
-    // Attach user info to request headers for use in page/components
+    // User has valid session, allow access
+    // Role validation will be done in the page/API route using Firebase Admin SDK
     response = NextResponse.next();
-    response.headers.set('x-user-id', payload?.sub || '');
-    response.headers.set('x-user-role', userRole);
-    response.headers.set('x-user-email', payload?.email || '');
   }
 
   // Handle auth routes - if user is logged in, redirect to dashboard
