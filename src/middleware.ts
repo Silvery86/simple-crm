@@ -12,10 +12,12 @@ type Language = 'vi' | 'en';
 /**
  * Purpose: Validate session token from cookies (Firebase session cookie)
  * Returns: Promise<{ valid: boolean; payload?: any; }>
- * Note: We just check if the session cookie exists here.
- * Full verification is done server-side by Firebase Admin SDK in API routes.
+ * Note: Calls /api/auth/verify to check with Firebase Admin SDK
  */
-async function validateSession(token: string | undefined): Promise<{
+async function validateSession(
+  token: string | undefined,
+  request: NextRequest
+): Promise<{
   valid: boolean;
   payload?: any;
 }> {
@@ -23,9 +25,34 @@ async function validateSession(token: string | undefined): Promise<{
     return { valid: false };
   }
 
-  // Session cookie exists, consider it valid
-  // The actual verification will be done by Firebase Admin SDK in protected routes
-  return { valid: true, payload: {} };
+  try {
+    // Call verify API to check session with Firebase Admin SDK
+    const baseUrl = request.nextUrl.origin;
+    const verifyUrl = `${baseUrl}/api/auth/verify`;
+
+    const response = await fetch(verifyUrl, {
+      method: 'GET',
+      headers: {
+        Cookie: `session=${token}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return { valid: false };
+    }
+
+    const result = await response.json();
+    
+    // Check API response format: { success: boolean; data?: any }
+    return { 
+      valid: result.success === true, 
+      payload: result.data 
+    };
+  } catch (error) {
+    console.error('[MIDDLEWARE] Session validation error:', error);
+    return { valid: false };
+  }
 }
 
 /**
@@ -120,7 +147,7 @@ export async function middleware(request: NextRequest) {
   // Handle protected routes
   if (isProtectedRoute(pathname)) {
     const sessionToken = cookies.get('session')?.value;
-    const { valid } = await validateSession(sessionToken);
+    const { valid } = await validateSession(sessionToken, request);
 
     if (!valid) {
       // Redirect to login
@@ -136,7 +163,7 @@ export async function middleware(request: NextRequest) {
   // Handle auth routes - if user is logged in, redirect to dashboard
   if (isAuthRoute(pathname)) {
     const sessionToken = cookies.get('session')?.value;
-    const { valid } = await validateSession(sessionToken);
+    const { valid } = await validateSession(sessionToken, request);
 
     if (valid) {
       // User is already logged in, redirect to dashboard
