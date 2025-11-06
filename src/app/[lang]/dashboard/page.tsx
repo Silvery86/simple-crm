@@ -2,28 +2,19 @@
 
 import { useAuth } from '@/lib/auth/auth-context';
 import { useLang } from '@/lib/hooks/useLang';
-import { useToast } from '@/components/ui/toast';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, Shield } from 'lucide-react';
-import { use } from 'react';
-
-interface DashboardPageProps {
-  params: Promise<{ lang: 'vi' | 'en' }>;
-}
+import { Loader2, User, Shield } from 'lucide-react';
 
 /**
  * Purpose: Dashboard page with language support.
  */
-export default function DashboardPage({ params }: DashboardPageProps) {
-  const { user, loading, logout } = useAuth();
+export default function DashboardPage() {
+  const { user, loading } = useAuth();
   const { t, isLoading: langLoading } = useLang();
-  const toast = useToast();
-  const resolvedParams = use(params);
 
   if (loading || langLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-12">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse">{t('common.loading')}</p>
@@ -32,39 +23,20 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     );
   }
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success('toast.success.title', 'toast.success.logoutSuccess');
-      window.location.href = `/${resolvedParams.lang}/auth/login`;
-    } catch (error) {
-      toast.error('toast.error.title', 'toast.error.unknownError');
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-linear-to-br from-background via-muted/10 to-background">
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {t('page.dashboard.title')}
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              {t('page.dashboard.welcome')}, <span className="font-semibold text-foreground">{user?.name || user?.email}</span>
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="transition-all duration-200 hover:scale-105"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            {t('page.dashboard.logoutButton')}
-          </Button>
-        </div>
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">
+          {t('page.dashboard.welcome')}, {user?.name || user?.email}!
+        </h1>
+        <p className="text-muted-foreground">
+          {t('page.dashboard.subtitle')}
+        </p>
+      </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Dashboard Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* User Info Card */}
         <Card>
           <CardHeader>
@@ -161,7 +133,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           </CardContent>
         </Card>
       </div>
-      </div>
-    </main>
+    </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   X,
+  Package,
 } from 'lucide-react';
 
 /**
@@ -89,6 +90,11 @@ export function Sidebar() {
       label: t('sidebar.customers'),
       icon: <Users className="h-5 w-5" />,
       href: `/${lang}/dashboard/customers`,
+    },
+    {
+      label: t('sidebar.productsConvert') || 'Products Converter',
+      icon: <Package className="h-5 w-5" />,
+      href: `/${lang}/dashboard/products-convert`,
     },
     {
       label: t('sidebar.stores'),
@@ -213,7 +219,7 @@ export function Sidebar() {
       </aside>
 
       {/* Spacer for desktop */}
-      <div className={cn('hidden md:block transition-all duration-300', isOpen ? 'w-64' : 'w-20')} />
+      <div className={cn('hidden md:block transition-all duration-300', isOpen ? 'w-5' : 'w-5')} />
     </>
   );
 }

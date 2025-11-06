@@ -66,6 +66,72 @@
         "connected": "✅ Connected",
         "valid": "✅ Valid"
       }
+    },
+    "productsConvert": {
+      "title": "Products Converter",
+      "subtitle": "Import and export products between platforms",
+      "import": {
+        "button": "Import",
+        "title": "Import Products",
+        "description": "Import your Shopify products from a JSON file",
+        "dragDrop": "Drag & drop your JSON file here",
+        "orClick": "or click to browse",
+        "uploading": "Uploading...",
+        "selectFile": "Select File",
+        "fileSelected": "File selected",
+        "fileSize": "File size",
+        "cancel": "Cancel",
+        "submit": "Import Products",
+        "errors": {
+          "invalidFile": "Please select a valid JSON file",
+          "parseError": "Failed to parse JSON file. Please check the file format.",
+          "notArray": "JSON file must contain an array of products"
+        }
+      },
+      "export": {
+        "button": "Export",
+        "title": "Export Products",
+        "description": "Choose your export format",
+        "selectFormat": "Select export format",
+        "productsToExport": "products to export",
+        "woocommerceCSV": "WooCommerce CSV",
+        "woocommerceDesc": "Standard WooCommerce import CSV format",
+        "shopifyCSV": "Shopify CSV",
+        "shopifyDesc": "Shopify import CSV format",
+        "cancel": "Cancel",
+        "export": "Export"
+      },
+      "loading": {
+        "importing": "Importing products...",
+        "exporting": "Exporting products..."
+      },
+      "stats": {
+        "totalProducts": "Total Products",
+        "withImages": "With Images",
+        "avgPrice": "Avg. Price",
+        "withTags": "With Tags"
+      },
+      "search": {
+        "placeholder": "Search products..."
+      },
+      "table": {
+        "image": "Image",
+        "title": "Title",
+        "sku": "SKU",
+        "price": "Price",
+        "tags": "Tags",
+        "itemsPerPage": "Show",
+        "showing": "Showing",
+        "to": "to",
+        "of": "of",
+        "results": "results",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "empty": {
+        "title": "No Products Yet",
+        "description": "Import a Shopify JSON file to get started with product conversion"
+      }
     }
   },
   "common": {
@@ -85,7 +151,8 @@
     "database": "Database",
     "session": "Session",
     "connected": "Connected",
-    "valid": "Valid"
+    "valid": "Valid",
+    "search": "Search"
   },
   "errors": {
     "auth": {
@@ -171,6 +238,7 @@
     "orders": "Orders",
     "customers": "Customers",
     "products": "Products",
+    "productsConvert": "Products Converter",
     "stores": "Stores",
     "analytics": "Analytics",
     "settings": "Settings",

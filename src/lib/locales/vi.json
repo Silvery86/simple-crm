@@ -66,6 +66,72 @@
         "connected": "✅ Kết nối",
         "valid": "✅ Hợp lệ"
       }
+    },
+    "productsConvert": {
+      "title": "Công cụ chuyển đổi sản phẩm",
+      "subtitle": "Nhập và xuất sản phẩm giữa các nền tảng",
+      "import": {
+        "button": "Nhập",
+        "title": "Nhập sản phẩm",
+        "description": "Nhập sản phẩm Shopify từ file JSON",
+        "dragDrop": "Kéo thả file JSON vào đây",
+        "orClick": "hoặc nhấp để chọn file",
+        "uploading": "Đang tải lên...",
+        "selectFile": "Chọn file",
+        "fileSelected": "Đã chọn file",
+        "fileSize": "Kích thước file",
+        "cancel": "Hủy",
+        "submit": "Nhập sản phẩm",
+        "errors": {
+          "invalidFile": "Vui lòng chọn file JSON hợp lệ",
+          "parseError": "Không thể đọc file JSON. Vui lòng kiểm tra định dạng file.",
+          "notArray": "File JSON phải chứa mảng sản phẩm"
+        }
+      },
+      "export": {
+        "button": "Xuất",
+        "title": "Xuất sản phẩm",
+        "description": "Chọn định dạng xuất",
+        "selectFormat": "Chọn định dạng xuất",
+        "productsToExport": "sản phẩm sẽ được xuất",
+        "woocommerceCSV": "WooCommerce CSV",
+        "woocommerceDesc": "Định dạng CSV chuẩn cho WooCommerce",
+        "shopifyCSV": "Shopify CSV",
+        "shopifyDesc": "Định dạng CSV nhập cho Shopify",
+        "cancel": "Hủy",
+        "export": "Xuất"
+      },
+      "loading": {
+        "importing": "Đang nhập sản phẩm...",
+        "exporting": "Đang xuất sản phẩm..."
+      },
+      "stats": {
+        "totalProducts": "Tổng sản phẩm",
+        "withImages": "Có hình ảnh",
+        "avgPrice": "Giá trung bình",
+        "withTags": "Có thẻ"
+      },
+      "search": {
+        "placeholder": "Tìm kiếm sản phẩm..."
+      },
+      "table": {
+        "image": "Hình ảnh",
+        "title": "Tiêu đề",
+        "sku": "Mã SKU",
+        "price": "Giá",
+        "tags": "Thẻ",
+        "itemsPerPage": "Hiển thị",
+        "showing": "Hiển thị",
+        "to": "đến",
+        "of": "trong tổng số",
+        "results": "kết quả",
+        "previous": "Trước",
+        "next": "Sau"
+      },
+      "empty": {
+        "title": "Chưa có sản phẩm",
+        "description": "Nhập file JSON Shopify để bắt đầu chuyển đổi sản phẩm"
+      }
     }
   },
   "common": {
@@ -85,7 +151,8 @@
     "database": "Cơ sở dữ liệu",
     "session": "Phiên",
     "connected": "Đã kết nối",
-    "valid": "Hợp lệ"
+    "valid": "Hợp lệ",
+    "search": "Tìm kiếm"
   },
   "errors": {
     "auth": {
@@ -171,6 +238,7 @@
     "orders": "Đơn hàng",
     "customers": "Khách hàng",
     "products": "Sản phẩm",
+    "productsConvert": "Chuyển đổi sản phẩm",
     "stores": "Cửa hàng",
     "analytics": "Phân tích",
     "settings": "Cài đặt",
