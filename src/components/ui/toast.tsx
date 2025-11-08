@@ -222,13 +222,13 @@ function ToastItem({ toast }: { toast: Toast }) {
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
+        return <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />;
       case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />;
       default:
         return null;
     }
@@ -242,13 +242,13 @@ function ToastItem({ toast }: { toast: Toast }) {
   const getBackgroundClass = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800';
+        return 'bg-green-50 border-green-300 dark:bg-green-900/30 dark:border-green-600';
       case 'error':
-        return 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800';
+        return 'bg-red-50 border-red-300 dark:bg-red-900/30 dark:border-red-600';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800';
+        return 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-600';
       case 'info':
-        return 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800';
+        return 'bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-600';
       default:
         return 'bg-card border-border';
     }

@@ -132,6 +132,80 @@
         "title": "Chưa có sản phẩm",
         "description": "Nhập file JSON Shopify để bắt đầu chuyển đổi sản phẩm"
       }
+    },
+    "stores": {
+      "title": "Quản Lý Cửa Hàng",
+      "subtitle": "Quản lý các cửa hàng thương mại điện tử của bạn",
+      "addStore": "Thêm Cửa Hàng",
+      "searchPlaceholder": "Tìm kiếm cửa hàng...",
+      "noStores": "Không tìm thấy cửa hàng",
+      "noStoresDescription": "Bắt đầu bằng cách thêm cửa hàng đầu tiên của bạn",
+      "filterAll": "Tất cả",
+      "filterActive": "Đang hoạt động",
+      "filterInactive": "Không hoạt động",
+      "actions": {
+        "add": "Thêm Cửa Hàng",
+        "edit": "Sửa",
+        "delete": "Xóa",
+        "view": "Xem Chi Tiết"
+      },
+      "status": {
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động"
+      },
+      "form": {
+        "createTitle": "Tạo Cửa Hàng Mới",
+        "editTitle": "Sửa Cửa Hàng",
+        "name": "Tên Cửa Hàng",
+        "platform": "Nền tảng",
+        "domain": "Tên miền",
+        "description": "Mô tả",
+        "country": "Quốc gia",
+        "currency": "Tiền tệ",
+        "logo": "Logo URL",
+        "consumerKey": "Consumer Key",
+        "consumerSecret": "Consumer Secret",
+        "namePlaceholder": "Nhập tên cửa hàng",
+        "domainPlaceholder": "tendomain.com",
+        "descriptionPlaceholder": "Mô tả cửa hàng",
+        "selectPlatform": "Chọn nền tảng",
+        "selectCountry": "Chọn quốc gia",
+        "consumerKeyPlaceholder": "ck_xxxxxxxxxxxxx",
+        "consumerSecretPlaceholder": "cs_xxxxxxxxxxxxx",
+        "logoPlaceholder": "https://example.com/logo.png",
+        "saveButton": "Lưu Cửa Hàng",
+        "cancelButton": "Hủy",
+        "saving": "Đang lưu...",
+        "requiredFields": "Các trường có dấu * là bắt buộc"
+      },
+      "delete": {
+        "title": "Xóa Cửa Hàng",
+        "message": "Bạn có chắc chắn muốn xóa cửa hàng này? Hành động này không thể hoàn tác.",
+        "confirmButton": "Xóa",
+        "cancelButton": "Hủy"
+      },
+      "stats": {
+        "total": "Tổng Cửa Hàng",
+        "active": "Đang Hoạt Động",
+        "woo": "WooCommerce",
+        "shopify": "Shopify"
+      },
+      "empty": {
+        "title": "Chưa Có Cửa Hàng",
+        "description": "Bắt đầu bằng cách thêm cửa hàng thương mại điện tử đầu tiên của bạn"
+      },
+      "loader": {
+        "validating": "Đang kiểm tra kết nối WooCommerce...",
+        "creating": "Đang tạo cửa hàng...",
+        "updating": "Đang cập nhật cửa hàng..."
+      },
+      "error": {
+        "cannotConnect": "Không thể kết nối đến WooCommerce. Vui lòng kiểm tra lại thông tin."
+      },
+      "success": {
+        "created": "Tạo cửa hàng thành công!",
+        "updated": "Cập nhật cửa hàng thành công!"
+      }
     }
   },
   "common": {
@@ -200,13 +274,16 @@
     "email": "Vui lòng nhập địa chỉ email hợp lệ",
     "minLength": "Phải có ít nhất {min} ký tự",
     "maxLength": "Không được vượt quá {max} ký tự",
-    "pattern": "Vui lòng nhập định dạng hợp lệ"
+    "pattern": "Vui lòng nhập định dạng hợp lệ",
+    "failed": "Xác Thực Thất Bại",
+    "checkFields": "Vui lòng kiểm tra lại các trường và thử lại"
   },
   "toast": {
     "success": {
       "title": "Thành công",
       "loginSuccess": "Đăng nhập thành công",
       "logoutSuccess": "Đăng xuất thành công",
+      "saved": "Lưu thành công",
       "savedSuccess": "Lưu thành công",
       "created": "Tạo thành công",
       "updated": "Cập nhật thành công",
@@ -248,5 +325,8 @@
     "home": "Trang chủ",
     "dashboard": "Dashboard",
     "back": "Quay lại"
+  },
+  "meta": {
+    "title": "Simple CRM"
   }
 }

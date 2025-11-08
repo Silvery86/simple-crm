@@ -125,6 +125,20 @@ model Store {
   name      String
   platform  StorePlatform
   domain    String
+  
+  // Store status and visibility
+  isActive  Boolean       @default(true)
+  
+  // WooCommerce specific fields
+  consumerKey    String?    // WooCommerce consumer key
+  consumerSecret String?    // WooCommerce consumer secret (should be encrypted)
+  
+  // Additional store info
+  description String?
+  logo        String?       // Store logo URL
+  country     String?
+  currency    String        @default("USD")
+  
   // OAuth tokens/API keys (should be encrypted before storing)
   settings  Json?
 
