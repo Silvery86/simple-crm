@@ -176,34 +176,52 @@ model Brand {
 
 // Normalized product data + raw payload from source platforms
 model Product {
-  id         String           @id @default(cuid())
-  title      String
+  id          String           @id @default(cuid())
+  title       String
   description String?
-  brandId    String?
+  brandId     String?
+  
+  // Shopify/E-commerce fields
+  handle      String?          // URL-friendly slug (e.g., "christmas-garage-door-banner")
+  vendor      String?          // Vendor/Brand name from Shopify
+  options     Json?            // Product options (Size, Color, etc.) in JSON format
+  
+  // Shared catalog fields
+  isShared    Boolean          @default(false)  // True if product is in shared catalog
+  categories  String[]         @default([])     // Product categories/tags
+  
+  // Images stored locally
+  images      String[]         @default([])     // Array of image paths (public/assets/products/productId/...)
   
   // Raw data from source platform (WooCommerce/Shopify)
-  rawPayload Json             // JSONB for flexible data storage
+  rawPayload  Json             // JSONB for flexible data storage
 
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   // Relationships
-  brand      Brand?           @relation(fields: [brandId], references: [id])
-  variants   ProductVariant[]
-  maps       StoreProductMap[]
-  orderItems OrderItem[]
+  brand       Brand?           @relation(fields: [brandId], references: [id])
+  variants    ProductVariant[]
+  maps        StoreProductMap[]
+  orderItems  OrderItem[]
 
+  @@index([isShared])
+  @@index([categories])
+  @@index([handle])
+  @@index([vendor])
   @@map("products")
 }
 
 // Product variants (SKU, price variations)
 model ProductVariant {
-  id          String   @id @default(cuid())
-  productId   String
-  sku         String?
-  price       Decimal?
-  currency    String?
-  rawPayload  Json?    // Variant-specific data from source
+  id             String   @id @default(cuid())
+  productId      String
+  sku            String?
+  price          Decimal?
+  compareAtPrice Decimal? // Sale price (original price before discount)
+  currency       String?
+  featuredImage  String?  // Variant-specific image URL or path
+  rawPayload     Json?    // Variant-specific data from source
 
   // Relationships
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)

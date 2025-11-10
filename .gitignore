@@ -47,3 +47,6 @@ next-env.d.ts
 copilot.instruction.md
 docs/
 .github/instructions/*
+
+#products images
+public/assets/products/*

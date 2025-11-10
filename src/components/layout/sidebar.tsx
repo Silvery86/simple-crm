@@ -20,6 +20,8 @@ import {
   Menu,
   X,
   Package,
+  FileBox,
+  Download,
 } from 'lucide-react';
 
 /**
@@ -90,6 +92,21 @@ export function Sidebar() {
       label: t('sidebar.customers'),
       icon: <Users className="h-5 w-5" />,
       href: `/${lang}/dashboard/customers`,
+    },
+    {
+      label: t('sidebar.products'),
+      icon: <Package className="h-5 w-5" />,
+      href: `/${lang}/dashboard/products`,
+    },
+    {
+      label: 'Shared Catalog',
+      icon: <FileBox className="h-5 w-5" />,
+      href: `/${lang}/dashboard/products/catalog`,
+    },
+    {
+      label: 'Shopify Import',
+      icon: <Download className="h-5 w-5" />,
+      href: `/${lang}/dashboard/shopify-import`,
     },
     {
       label: t('sidebar.productsConvert') || 'Products Converter',

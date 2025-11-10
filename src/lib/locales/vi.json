@@ -206,6 +206,65 @@
         "created": "Tạo cửa hàng thành công!",
         "updated": "Cập nhật cửa hàng thành công!"
       }
+    },
+    "products": {
+      "title": "Quản lý Sản phẩm",
+      "subtitle": "Quản lý danh mục sản phẩm của bạn",
+      "addProduct": "Thêm sản phẩm",
+      "searchPlaceholder": "Tìm kiếm sản phẩm...",
+      "noProducts": "Không tìm thấy sản phẩm",
+      "noProductsDescription": "Bắt đầu bằng cách thêm sản phẩm đầu tiên",
+      "filterAll": "Tất cả sản phẩm",
+      "filterByBrand": "Lọc theo thương hiệu",
+      "filterByStore": "Lọc theo cửa hàng",
+      "actions": {
+        "add": "Thêm sản phẩm",
+        "edit": "Sửa",
+        "delete": "Xóa",
+        "view": "Xem chi tiết"
+      },
+      "form": {
+        "createTitle": "Tạo sản phẩm mới",
+        "editTitle": "Sửa sản phẩm",
+        "title": "Tên sản phẩm",
+        "description": "Mô tả",
+        "brand": "Thương hiệu",
+        "titlePlaceholder": "Nhập tên sản phẩm",
+        "descriptionPlaceholder": "Nhập mô tả sản phẩm",
+        "selectBrand": "Chọn thương hiệu",
+        "saveButton": "Lưu sản phẩm",
+        "cancelButton": "Hủy",
+        "saving": "Đang lưu...",
+        "requiredFields": "Các trường có dấu * là bắt buộc"
+      },
+      "delete": {
+        "title": "Xóa sản phẩm",
+        "message": "Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác.",
+        "confirmButton": "Xóa",
+        "cancelButton": "Hủy"
+      },
+      "stats": {
+        "total": "Tổng sản phẩm",
+        "variants": "Biến thể",
+        "stores": "Cửa hàng"
+      },
+      "empty": {
+        "title": "Chưa có sản phẩm",
+        "description": "Bắt đầu bằng cách thêm sản phẩm đầu tiên"
+      },
+      "loader": {
+        "loading": "Đang tải sản phẩm...",
+        "creating": "Đang tạo sản phẩm...",
+        "updating": "Đang cập nhật sản phẩm..."
+      },
+      "error": {
+        "loadFailed": "Không thể tải danh sách sản phẩm"
+      },
+      "success": {
+        "created": "Tạo sản phẩm thành công!",
+        "updated": "Cập nhật sản phẩm thành công!",
+        "deleted": "Xóa sản phẩm thành công!"
+      }
     }
   },
   "common": {
