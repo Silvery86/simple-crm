@@ -142,7 +142,6 @@ export async function POST(request: NextRequest) {
 
     // Validate WooCommerce credentials if provided
     if (platform === 'WOO' && consumerKey && consumerSecret) {
-      console.log('Validating WooCommerce credentials...');
       const validation = await validateWooCommerceCredentials(
         domain,
         consumerKey,

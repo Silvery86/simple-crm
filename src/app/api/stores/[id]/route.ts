@@ -139,7 +139,6 @@ export async function PUT(
 
     // Validate WooCommerce credentials if they are being updated
     if (body.platform === 'WOO' && body.consumerKey && body.consumerSecret && body.consumerSecret !== '****************') {
-      console.log('Validating updated WooCommerce credentials...');
       const { validateWooCommerceCredentials } = await import('@/lib/utils/store-credentials');
       const validation = await validateWooCommerceCredentials(
         body.domain,

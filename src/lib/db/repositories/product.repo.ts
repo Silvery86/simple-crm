@@ -112,15 +112,7 @@ export type ProductWithRelations = Product & {
   };
 };
 
-// Temporary type extension until Prisma Client is regenerated
-export type CreateProductInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & {
-  handle?: string | null;
-  vendor?: string | null;
-  options?: any;
-  isShared?: boolean;
-  categories?: string[];
-  images?: string[];
-};
+export type CreateProductInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateProductInput = Partial<CreateProductInput>;
 
 /**
@@ -262,7 +254,7 @@ class PrismaProductRepository implements ProductRepository {
    */
   async create(data: CreateProductInput): Promise<Product> {
     return prisma.product.create({
-      data: data as any,
+      data: data as Prisma.ProductCreateInput,
     });
   }
 
@@ -279,7 +271,7 @@ class PrismaProductRepository implements ProductRepository {
   async update(id: string, data: UpdateProductInput): Promise<Product> {
     return prisma.product.update({
       where: { id },
-      data: data as any,
+      data: data as Prisma.ProductUpdateInput,
     });
   }
 
