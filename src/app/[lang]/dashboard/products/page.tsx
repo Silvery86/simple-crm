@@ -20,9 +20,12 @@ export async function generateMetadata({
 
 async function getProducts() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/products`, {
-      cache: 'no-store',
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/products?isShared=false`,
+      {
+        cache: 'no-store',
+      }
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return data.success ? data.data : [];
@@ -52,11 +55,16 @@ export default async function ProductsPage({ params }: ProductPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {dict.page.products.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {dict.page.products.title}
+            </h1>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+              Store Products Only
+            </span>
+          </div>
           <p className="text-muted-foreground mt-2">
-            {dict.page.products.subtitle}
+            {dict.page.products.subtitle} (Excluding shared catalog products)
           </p>
         </div>
         <Link

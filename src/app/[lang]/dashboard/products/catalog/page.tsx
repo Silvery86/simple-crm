@@ -21,18 +21,31 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Filter, ChevronLeft, ChevronRight, FileBox } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Search, Filter, ChevronLeft, ChevronRight, FileBox, Eye } from 'lucide-react';
 import Image from 'next/image';
+
+interface ProductVariant {
+  id: string;
+  price: number;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  options?: any;
+}
 
 interface Product {
   id: string;
   title: string;
+  description?: string | null;
   categories: string[];
   images: string[];
-  variants: Array<{
-    id: string;
-    price: number;
-  }>;
+  variants: ProductVariant[];
 }
 
 /**
@@ -60,8 +73,13 @@ export default function SharedCatalogPage() {
   // Stats
   const [total, setTotal] = useState(0);
   const [allCategories, setAllCategories] = useState<string[]>([]);
+  
+  // Modal
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Handle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -98,14 +116,12 @@ export default function SharedCatalogPage() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        // API returns { success, data: products[], meta: {...} }
         const productList = Array.isArray(data.data) ? data.data : [];
         const total = data.meta?.total || productList.length;
         
         setProducts(productList);
         setTotal(total);
         
-        // Extract unique categories
         const categories = new Set<string>();
         productList.forEach((p: Product) => {
           if (p.categories && Array.isArray(p.categories)) {
@@ -114,7 +130,6 @@ export default function SharedCatalogPage() {
         });
         setAllCategories(Array.from(categories).sort());
       } else {
-        // Handle empty or error response
         setProducts([]);
         setTotal(0);
         setAllCategories([]);
@@ -131,7 +146,6 @@ export default function SharedCatalogPage() {
 
   useEffect(() => {
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit]);
 
   /**
@@ -179,6 +193,41 @@ export default function SharedCatalogPage() {
   };
 
   /**
+   * Purpose: Convert price to number (handles Prisma Decimal).
+   * Params:
+   *   - price: any — Price value (can be number, string, or Decimal).
+   * Returns:
+   *   - number — Parsed price as number.
+   */
+  const parsePrice = (price: any): number => {
+    if (price === null || price === undefined) return 0;
+    if (typeof price === 'number') return price;
+    if (typeof price === 'string') return parseFloat(price) || 0;
+    return parseFloat(price.toString()) || 0;
+  };
+
+  /**
+   * Purpose: Get badge color for category.
+   * Params:
+   *   - index: number — Category index.
+   * Returns:
+   *   - string — Tailwind classes for badge color.
+   */
+  const getCategoryBadgeColor = (index: number): string => {
+    const colors = [
+      'bg-blue-500 text-white dark:bg-blue-600',
+      'bg-green-500 text-white dark:bg-green-600',
+      'bg-purple-500 text-white dark:bg-purple-600',
+      'bg-orange-500 text-white dark:bg-orange-600',
+      'bg-pink-500 text-white dark:bg-pink-600',
+      'bg-indigo-500 text-white dark:bg-indigo-600',
+      'bg-cyan-500 text-white dark:bg-cyan-600',
+      'bg-amber-500 text-white dark:bg-amber-600',
+    ];
+    return colors[index % colors.length];
+  };
+
+  /**
    * Purpose: Get price range for a product from its variants.
    * Params:
    *   - product: Product — Product object.
@@ -203,136 +252,127 @@ export default function SharedCatalogPage() {
   const totalPages = Math.ceil(total / limit);
   const isAllSelected = products.length > 0 && selectedIds.size === products.length;
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return null;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header with Stats */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Shared Product Catalog</h1>
-          <p className="text-muted-foreground mt-2">
-            Browse and select products from the shared catalog
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">Shared Product Catalog</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              {total} Products
+            </span>
+          </div>
+          <p className="text-muted-foreground text-sm mt-1">
+            Browse and select products from shared catalog
           </p>
         </div>
         
         {selectedIds.size > 0 && (
-          <Button variant="default">
+          <Button variant="default" size="sm">
             Add {selectedIds.size} to Store
           </Button>
         )}
       </div>
 
-      {/* Stats */}
+      {/* Compact Filters Bar */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Shared Products
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{total}</div>
-        </CardContent>
-      </Card>
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-3 items-end">
+            {/* Search */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setPage(1);
+                      fetchProducts();
+                    }
+                  }}
+                  className="pl-10 h-9"
+                />
+              </div>
+            </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* Category Filter */}
+            <div className="w-48">
+              <Select
+                value={selectedCategories[0] || 'all'}
+                onValueChange={(value: string) => {
+                  if (value === 'all') {
+                    setSelectedCategories([]);
+                  } else {
+                    setSelectedCategories([value]);
+                  }
+                  setPage(1);
+                  fetchProducts();
+                }}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {allCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Price Range */}
+            <div className="flex gap-2">
               <Input
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Min $"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="w-24 h-9"
+              />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Max $"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-24 h-9"
               />
             </div>
-            <Button type="submit">Search</Button>
-          </form>
 
-          {/* Category Filter */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Categories</label>
-            <Select
-              value={selectedCategories[0] || ''}
-              onValueChange={(value: string) => {
-                if (value === 'all') {
-                  setSelectedCategories([]);
-                } else {
-                  setSelectedCategories([value]);
-                }
+            <Button
+              onClick={() => {
                 setPage(1);
                 fetchProducts();
               }}
+              size="sm"
+              variant="secondary"
+              className="h-9"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {allCategories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Filter className="h-4 w-4 mr-2" />
+              Apply
+            </Button>
           </div>
-
-          {/* Price Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Min Price ($)</label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Max Price ($)</label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="999.99"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={() => {
-              setPage(1);
-              fetchProducts();
-            }}
-            variant="secondary"
-            className="w-full"
-          >
-            Apply Filters
-          </Button>
         </CardContent>
       </Card>
 
       {/* Products Table */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Products</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between py-3">
+          <CardTitle className="text-base font-semibold">Products ({total})</CardTitle>
           <Select
             value={limit.toString()}
             onValueChange={(value: string) => {
@@ -340,13 +380,13 @@ export default function SharedCatalogPage() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="20">20 per page</SelectItem>
-              <SelectItem value="50">50 per page</SelectItem>
-              <SelectItem value="100">100 per page</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
         </CardHeader>
@@ -374,64 +414,83 @@ export default function SharedCatalogPage() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
-                    <TableHead className="w-20">Image</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Categories</TableHead>
-                    <TableHead>Variants</TableHead>
-                    <TableHead>Price Range</TableHead>
+                    <TableHead className="w-24">Image</TableHead>
+                    <TableHead className="py-2 text-xs">Title</TableHead>
+                    <TableHead className="py-2 text-xs">Categories</TableHead>
+                    <TableHead className="py-2 text-xs">Variants</TableHead>
+                    <TableHead className="py-2 text-xs">Price Range</TableHead>
+                    <TableHead className="py-2 text-xs w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
+                    <TableRow key={product.id} className="hover:bg-muted/50">
+                      <TableCell className="py-3">
                         <Checkbox
                           checked={selectedIds.has(product.id)}
                           onCheckedChange={() => toggleSelect(product.id)}
+                          className="h-4 w-4"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         {product.images[0] ? (
                           <Image
                             src={product.images[0]}
                             alt={product.title}
-                            width={40}
-                            height={40}
+                            width={56}
+                            height={56}
                             className="rounded object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                            <FileBox className="h-5 w-5 text-muted-foreground" />
+                          <div className="w-14 h-14 bg-muted rounded flex items-center justify-center">
+                            <FileBox className="h-6 w-6 text-muted-foreground" />
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{product.title}</TableCell>
-                      <TableCell>
+                      <TableCell className="py-3 text-sm font-medium max-w-xs">
+                        <div className="line-clamp-2">{product.title}</div>
+                      </TableCell>
+                      <TableCell className="py-3">
                         <div className="flex flex-wrap gap-1">
                           {product.categories && product.categories.length > 0 ? (
                             <>
-                              {product.categories.slice(0, 3).map((cat, idx) => (
+                              {product.categories.slice(0, 2).map((cat, idx) => (
                                 <span
                                   key={idx}
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary"
                                 >
                                   {cat}
                                 </span>
                               ))}
-                              {product.categories.length > 3 && (
+                              {product.categories.length > 2 && (
                                 <span className="text-xs text-muted-foreground">
-                                  +{product.categories.length - 3}
+                                  +{product.categories.length - 2}
                                 </span>
                               )}
                             </>
                           ) : (
-                            <span className="text-xs text-muted-foreground">No categories</span>
+                            <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{product.variants?.length || 0}</TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="py-3 text-sm">{product.variants?.length || 0}</TableCell>
+                      <TableCell className="py-3 text-sm font-medium">
                         {getPriceRange(product)}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setSelectedVariant(product.variants?.[0] || null);
+                            setSelectedImageIndex(0);
+                            setIsModalOpen(true);
+                          }}
+                          className="h-8 px-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -473,6 +532,210 @@ export default function SharedCatalogPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Product Detail Modal */}
+      <Dialog 
+        open={isModalOpen} 
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) {
+            setSelectedVariant(null);
+            setSelectedImageIndex(0);
+          }
+        }}
+      >
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+          {selectedProduct && (
+            <div className="grid md:grid-cols-2 gap-6 p-6">
+              {/* Left Side - Images Gallery */}
+              <div className="space-y-4">
+                {/* Main Image */}
+                {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                  <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden">
+                    <Image
+                      src={selectedProduct.images[selectedImageIndex]}
+                      alt={selectedProduct.title}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-square w-full bg-muted rounded-lg flex items-center justify-center">
+                    <FileBox className="h-20 w-20 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Thumbnail Gallery */}
+                {selectedProduct.images && selectedProduct.images.length > 1 && (
+                  <div className="grid grid-cols-5 gap-2">
+                    {selectedProduct.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
+                          selectedImageIndex === idx 
+                            ? 'border-primary ring-2 ring-primary/20' 
+                            : 'border-transparent hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        <Image
+                          src={img}
+                          alt={`${selectedProduct.title} - ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side - Product Summary */}
+              <div className="flex flex-col h-full">
+                <div className="flex-1 space-y-6 overflow-y-auto">
+                  {/* Title & Categories */}
+                  <div>
+                    <DialogTitle className="text-2xl font-bold mb-3">
+                      {selectedProduct.title}
+                    </DialogTitle>
+                    
+                    {selectedProduct.categories && selectedProduct.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedProduct.categories.map((cat, idx) => (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${getCategoryBadgeColor(idx)}`}
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price Display */}
+                  <div className="space-y-3">
+                    {selectedVariant ? (
+                      <>
+                        <div className="space-y-2">
+                          {(() => {
+                            const price = parsePrice(selectedVariant.price);
+                            const compareAt = parsePrice(selectedVariant.compareAtPrice);
+                            const hasDiscount = compareAt > 0 && compareAt > price;
+                            
+                            // Debug log
+                            console.log('Selected Variant:', {
+                              sku: selectedVariant.sku,
+                              price: selectedVariant.price,
+                              compareAtPrice: selectedVariant.compareAtPrice,
+                              parsedPrice: price,
+                              parsedCompareAt: compareAt,
+                              hasDiscount
+                            });
+
+                            return (
+                              <>
+                                <div className="flex items-baseline gap-3 flex-wrap">
+                                  {/* Sale Price (RED if on sale, normal if not) */}
+                                  <span className={`text-3xl font-bold ${
+                                    hasDiscount ? 'text-red-600 dark:text-red-500' : 'text-foreground'
+                                  }`}>
+                                    ${price.toFixed(2)}
+                                  </span>
+                                  
+                                  {/* Original Price (strikethrough) and Save Badge */}
+                                  {hasDiscount && (
+                                    <>
+                                      <span className="text-2xl text-muted-foreground line-through">
+                                        ${compareAt.toFixed(2)}
+                                      </span>
+                                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-red-500 text-white dark:bg-red-600">
+                                        Save {((compareAt - price) / compareAt * 100).toFixed(0)}%
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                
+                                {selectedVariant.sku && (
+                                  <p className="text-sm text-muted-foreground">
+                                    SKU: <span className="font-mono">{selectedVariant.sku}</span>
+                                  </p>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-muted-foreground italic">
+                        Select a variant to see pricing
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Variant Selection */}
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold">
+                        Variants ({selectedProduct.variants.length})
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProduct.variants.map((variant) => (
+                          <button
+                            key={variant.id}
+                            onClick={() => setSelectedVariant(variant)}
+                            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all hover:border-primary whitespace-nowrap ${
+                              selectedVariant?.id === variant.id
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border bg-background'
+                            }`}
+                          >
+                            {variant.sku || `Variant ${selectedProduct.variants.indexOf(variant) + 1}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description at bottom */}
+                  {selectedProduct.description && (
+                    <div className="pt-4 border-t">
+                      <h3 className="text-sm font-semibold mb-3">Description</h3>
+                      <div 
+                        className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ 
+                          __html: selectedProduct.description
+                            .replace(/<p data-start="[^"]*" data-end="[^"]*">/g, '<p>')
+                            .replace(/<li data-start="[^"]*" data-end="[^"]*">/g, '<li>')
+                            .replace(/<strong data-start="[^"]*" data-end="[^"]*">/g, '<strong>')
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions - Fixed at bottom */}
+                <div className="flex gap-2 pt-4 border-t mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    disabled={!selectedVariant}
+                  >
+                    Add to Store
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

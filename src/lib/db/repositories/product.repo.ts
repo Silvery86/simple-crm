@@ -105,6 +105,7 @@ export type ProductWithRelations = Product & {
     id: string;
     sku: string | null;
     price: any;
+    compareAtPrice: any;
     currency: string | null;
   }>;
   _count?: {
@@ -143,6 +144,7 @@ class PrismaProductRepository implements ProductRepository {
             id: true,
             sku: true,
             price: true,
+            compareAtPrice: true,
             currency: true,
           },
         },
@@ -152,7 +154,7 @@ class PrismaProductRepository implements ProductRepository {
           },
         },
       },
-    });
+    }) as Promise<ProductWithRelations | null>;
   }
 
   /**
@@ -219,6 +221,7 @@ class PrismaProductRepository implements ProductRepository {
               id: true,
               sku: true,
               price: true,
+              compareAtPrice: true,
               currency: true,
             },
           },
@@ -228,7 +231,7 @@ class PrismaProductRepository implements ProductRepository {
             },
           },
         },
-      }),
+      }) as Promise<ProductWithRelations[]>,
       prisma.product.count({ where }),
     ]);
 
@@ -333,6 +336,7 @@ class PrismaProductRepository implements ProductRepository {
             id: true,
             sku: true,
             price: true,
+            compareAtPrice: true,
             currency: true,
           },
         },
@@ -343,7 +347,7 @@ class PrismaProductRepository implements ProductRepository {
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
+    }) as Promise<ProductWithRelations[]>;
   }
 }
 

@@ -132,3 +132,50 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 }
+
+@layer components {
+  /* Prose styles for product descriptions */
+  .prose {
+    max-width: none;
+  }
+  
+  .prose p {
+    margin-bottom: 1em;
+    line-height: 1.6;
+  }
+  
+  .prose strong {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  
+  .prose ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
+  }
+  
+  .prose li {
+    margin-bottom: 0.5em;
+    line-height: 1.6;
+  }
+  
+  .prose li strong {
+    display: inline-block;
+    margin-bottom: 0.25em;
+  }
+  
+  .prose p:last-child,
+  .prose ul:last-child {
+    margin-bottom: 0;
+  }
+  
+  .dark .prose {
+    color: var(--muted-foreground);
+  }
+  
+  .dark .prose strong {
+    color: var(--foreground);
+  }
+}
