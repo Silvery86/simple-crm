@@ -28,7 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Filter, ChevronLeft, ChevronRight, FileBox, Eye } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { Search, Filter, ChevronLeft, ChevronRight, FileBox, Eye, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface ProductVariant {
@@ -48,6 +49,13 @@ interface Product {
   variants: ProductVariant[];
 }
 
+interface Store {
+  id: string;
+  name: string;
+  platform: string;
+  isActive: boolean;
+}
+
 /**
  * Purpose: Shared Product Catalog page with filtering, search, and bulk selection.
  * Params: N/A
@@ -56,11 +64,17 @@ interface Product {
  */
 export default function SharedCatalogPage() {
   const { t } = useLang();
+  const toast = useToast();
   
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Stores
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [isAddingToStore, setIsAddingToStore] = useState(false);
   
   // Filters
   const [search, setSearch] = useState('');
@@ -82,7 +96,29 @@ export default function SharedCatalogPage() {
 
   useEffect(() => {
     setMounted(true);
+    fetchStores();
   }, []);
+
+  /**
+   * Purpose: Fetch active stores from API.
+   * Params: N/A
+   * Returns:
+   *   - Promise<void> — Resolves when stores are fetched.
+   */
+  const fetchStores = async () => {
+    try {
+      const res = await fetch('/api/stores?isActive=true');
+      const data = await res.json();
+      if (data.success) {
+        setStores(data.data || []);
+        if (data.data && data.data.length > 0) {
+          setSelectedStoreId(data.data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch stores:', error);
+    }
+  };
 
   /**
    * Purpose: Fetch products from API with filters.
@@ -247,6 +283,53 @@ export default function SharedCatalogPage() {
       return `$${min.toFixed(2)}`;
     }
     return `$${min.toFixed(2)} - $${max.toFixed(2)}`;
+  };
+
+  /**
+   * Purpose: Add selected product to store.
+   * Params: N/A
+   * Returns:
+   *   - Promise<void> — Resolves when product is added.
+   */
+  const handleAddToStore = async () => {
+    if (!selectedProduct || !selectedStoreId) {
+      toast.error('Error', 'Please select a store');
+      return;
+    }
+
+    setIsAddingToStore(true);
+    try {
+      const res = await fetch('/api/products/add-to-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: selectedProduct.id,
+          storeId: selectedStoreId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(
+          'Success',
+          `Added "${data.meta.productTitle}" to "${data.meta.storeName}"`
+        );
+        setIsModalOpen(false);
+      } else {
+        // Handle specific error cases
+        if (data.error.code === 'ALREADY_MAPPED') {
+          toast.warning('Already Added', 'This product is already in the selected store');
+        } else {
+          toast.error('Error', data.error.message || 'Failed to add product to store');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to add product to store:', error);
+      toast.error('Error', 'Failed to add product to store');
+    } finally {
+      setIsAddingToStore(false);
+    }
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -716,20 +799,61 @@ export default function SharedCatalogPage() {
                 </div>
 
                 {/* Actions - Fixed at bottom */}
-                <div className="flex gap-2 pt-4 border-t mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1"
-                  >
-                    Close
-                  </Button>
-                  <Button 
-                    className="flex-1"
-                    disabled={!selectedVariant}
-                  >
-                    Add to Store
-                  </Button>
+                <div className="space-y-3 pt-4 border-t mt-4">
+                  {/* Store Selector */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">
+                      Select Store
+                    </label>
+                    <Select 
+                      value={selectedStoreId} 
+                      onValueChange={setSelectedStoreId}
+                      disabled={isAddingToStore}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose a store..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stores.length === 0 ? (
+                          <SelectItem value="no-stores" disabled>
+                            No active stores available
+                          </SelectItem>
+                        ) : (
+                          stores.map((store) => (
+                            <SelectItem key={store.id} value={store.id}>
+                              {store.name} ({store.platform})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1"
+                      disabled={isAddingToStore}
+                    >
+                      Close
+                    </Button>
+                    <Button 
+                      className="flex-1"
+                      disabled={!selectedStoreId || stores.length === 0 || isAddingToStore}
+                      onClick={handleAddToStore}
+                    >
+                      {isAddingToStore ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        'Add to Store'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

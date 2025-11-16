@@ -113,7 +113,7 @@ export type ProductWithRelations = Product & {
   };
 };
 
-export type CreateProductInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateProductInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'lastModifiedAt' | 'lastModifiedBy' | 'conflictDetected'>;
 export type UpdateProductInput = Partial<CreateProductInput>;
 
 /**
