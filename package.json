@@ -21,6 +21,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
+    "@woocommerce/woocommerce-rest-api": "^1.0.2",
     "bullmq": "^5.62.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
