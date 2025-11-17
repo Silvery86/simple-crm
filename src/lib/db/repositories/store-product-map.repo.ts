@@ -40,6 +40,7 @@ export interface IStoreProductMapRepository {
       pageSize?: number;
       isActive?: boolean;
       include?: Prisma.StoreProductMapInclude;
+      orderBy?: Prisma.StoreProductMapOrderByWithRelationInput;
     }
   ): Promise<{ mappings: any[]; total: number }>;
 
@@ -114,6 +115,7 @@ export class PrismaStoreProductMapRepository implements IStoreProductMapReposito
       pageSize?: number;
       isActive?: boolean;
       include?: Prisma.StoreProductMapInclude;
+      orderBy?: Prisma.StoreProductMapOrderByWithRelationInput;
     }
   ): Promise<{ mappings: any[]; total: number }> {
     const page = options?.page || 1;
@@ -128,14 +130,18 @@ export class PrismaStoreProductMapRepository implements IStoreProductMapReposito
       where.isActive = options.isActive;
     }
 
+    // Default orderBy if not provided
+    const orderBy: Prisma.StoreProductMapOrderByWithRelationInput | Prisma.StoreProductMapOrderByWithRelationInput[] = 
+      options?.orderBy || [
+        { displayOrder: 'asc' as Prisma.SortOrder },
+        { createdAt: 'desc' as Prisma.SortOrder }
+      ];
+
     const [mappings, total] = await Promise.all([
       prisma.storeProductMap.findMany({
         where,
         include: options?.include,
-        orderBy: [
-          { displayOrder: 'asc' },
-          { createdAt: 'desc' }
-        ],
+        orderBy,
         skip,
         take: pageSize
       }),

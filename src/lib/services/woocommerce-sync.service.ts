@@ -20,6 +20,7 @@ import { Product } from '@prisma/client';
 import { productRepository } from '@/lib/db/repositories/product.repo';
 import { storeRepository } from '@/lib/db/repositories/store.repo';
 import { storeProductMapRepository } from '@/lib/db/repositories/store-product-map.repo';
+import { productVariantRepository } from '@/lib/db/repositories/product-variant.repo';
 import { duplicateDetectionService, DuplicateCheckResult } from './duplicate-detection.service';
 
 export interface SyncResult {
@@ -60,6 +61,28 @@ export interface WooProduct {
   images: Array<{ id: number; src: string; name: string; alt: string }>;
   attributes: Array<any>;
   variations: number[];
+  meta_data: Array<any>;
+}
+
+export interface WooVariation {
+  id: number;
+  date_created: string;
+  date_modified: string;
+  description: string;
+  permalink: string;
+  sku: string;
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  on_sale: boolean;
+  purchasable: boolean;
+  virtual: boolean;
+  downloadable: boolean;
+  manage_stock: boolean;
+  stock_quantity: number | null;
+  stock_status: string;
+  image: { id: number; src: string; name: string; alt: string } | null;
+  attributes: Array<{ id: number; name: string; option: string }>;
   meta_data: Array<any>;
 }
 
@@ -120,6 +143,13 @@ export class WooCommerceSyncService {
         queryStringAuth: true 
       });
 
+      // Extract currency from store settings (if available)
+      let storeCurrency = 'USD'; // Default fallback
+      if (store.settings && typeof store.settings === 'object') {
+        const settings = store.settings as any;
+        storeCurrency = settings.currency || 'USD';
+      }
+
       const pageSize = options?.pageSize || 100;
       const maxPages = options?.maxPages || Infinity;
       let currentPage = 1;
@@ -152,9 +182,13 @@ export class WooCommerceSyncService {
 
           for (const wooProduct of products) {
             try {
-              await this.processProduct(storeId, wooProduct);
+              const status = await this.processProduct(storeId, wooProduct, storeCurrency);
               result.total++;
-              result.created++; 
+              if (status === 'created') {
+                result.created++;
+              } else if (status === 'updated') {
+                result.updated++;
+              }
             } catch (error: any) {
               result.failed++;
               result.errors.push({
@@ -198,10 +232,11 @@ export class WooCommerceSyncService {
    * Params:
    *   - storeId: string — Store ID.
    *   - wooProduct: WooProduct — Product data from WooCommerce.
+   *   - storeCurrency: string — Store currency.
    * Returns:
-   *   - Promise<void>
+   *   - Promise<'created' | 'updated'> — Status of the operation.
    */
-  private async processProduct(storeId: string, wooProduct: WooProduct): Promise<void> {
+  private async processProduct(storeId: string, wooProduct: WooProduct, storeCurrency: string = 'USD'): Promise<'created' | 'updated'> {
     const duplicateCheck: DuplicateCheckResult = await this.duplicateDetector.findDuplicates({
       sku: wooProduct.sku || null,
       handle: wooProduct.slug || null,
@@ -209,6 +244,7 @@ export class WooCommerceSyncService {
     });
 
     let product: Product;
+    let isNewProduct = false;
 
     if (duplicateCheck.found && duplicateCheck.match) {
       console.log(`[WooSync] Duplicate found (${duplicateCheck.method}): ${wooProduct.name}`);
@@ -225,6 +261,7 @@ export class WooCommerceSyncService {
 
     } else {
       console.log(`[WooSync] Creating new product: ${wooProduct.name}`);
+      isNewProduct = true;
       
       product = await productRepository.create({
         title: wooProduct.name,
@@ -240,7 +277,17 @@ export class WooCommerceSyncService {
       });
     }
 
-    await this.syncProductVariants(product.id, wooProduct);
+    // Pass API client to sync variations (needed for fetching individual variations)
+    const store = await storeRepository.findById(storeId);
+    const api = store ? new WooCommerceRestApi({
+      url: store.domain,
+      consumerKey: store.consumerKey!,
+      consumerSecret: store.consumerSecret!,
+      version: "wc/v3",
+      queryStringAuth: true
+    }) : null;
+
+    await this.syncProductVariants(product.id, wooProduct, storeCurrency, api);
 
     const existingMapping = await storeProductMapRepository.findByStoreAndProduct(storeId, product.id);
 
@@ -268,6 +315,8 @@ export class WooCommerceSyncService {
         syncSource: 'WOO'
       });
     }
+
+    return isNewProduct ? 'created' : 'updated';
   }
 
   /**
@@ -275,26 +324,125 @@ export class WooCommerceSyncService {
    * Params:
    *   - productId: string — Product ID in CRM.
    *   - wooProduct: WooProduct — WooCommerce product data.
+   *   - storeCurrency: string — Currency from store settings.
+   *   - api: WooCommerceRestApi | null — WooCommerce API client for fetching variations.
    * Returns:
    *   - Promise<void>
    */
-  private async syncProductVariants(productId: string, wooProduct: WooProduct): Promise<void> {
+  private async syncProductVariants(
+    productId: string, 
+    wooProduct: WooProduct, 
+    storeCurrency: string = 'USD',
+    api: WooCommerceRestApi | null = null
+  ): Promise<void> {
     // For simple products, create a single variant
     if (wooProduct.type === 'simple') {
-      const variants = await this.buildSimpleVariant(wooProduct);
+      const variantData = this.buildSimpleVariant(wooProduct, storeCurrency);
       
-      // TODO: Create or update variant in database
-      // This requires a ProductVariantRepository which we don't have yet
-      // For now, we'll skip this and handle it later
-      console.log(`[WooSync] Simple product variant: SKU=${variants.sku}, Price=${variants.price}`);
+      // Upsert variant by SKU
+      if (variantData.sku) {
+        await productVariantRepository.upsertBySku(
+          variantData.sku,
+          productId,
+          {
+            sku: variantData.sku,
+            price: variantData.price,
+            compareAtPrice: variantData.compareAtPrice,
+            currency: variantData.currency,
+            featuredImage: variantData.featuredImage,
+            rawPayload: variantData.rawPayload
+          }
+        );
+        console.log(`[WooSync] Simple product variant synced: SKU=${variantData.sku}, Price=${variantData.price}`);
+      } else {
+        // If no SKU, check if variant exists and update, otherwise create
+        const existingVariants = await productVariantRepository.findByProductId(productId);
+        
+        if (existingVariants.length > 0) {
+          // Update first variant
+          await productVariantRepository.update(existingVariants[0].id, {
+            price: variantData.price,
+            compareAtPrice: variantData.compareAtPrice,
+            currency: variantData.currency,
+            featuredImage: variantData.featuredImage,
+            rawPayload: variantData.rawPayload
+          });
+          console.log(`[WooSync] Simple product variant updated (no SKU)`);
+        } else {
+          // Create new variant
+          await productVariantRepository.create({
+            productId,
+            sku: variantData.sku,
+            price: variantData.price,
+            compareAtPrice: variantData.compareAtPrice,
+            currency: variantData.currency,
+            featuredImage: variantData.featuredImage,
+            rawPayload: variantData.rawPayload
+          });
+          console.log(`[WooSync] Simple product variant created (no SKU)`);
+        }
+      }
     }
 
     // For variable products, fetch and sync variations
     if (wooProduct.type === 'variable' && wooProduct.variations.length > 0) {
-      console.log(`[WooSync] Variable product with ${wooProduct.variations.length} variations - skipping for now`);
-      // TODO: Implement variation sync
-      // This requires fetching each variation from WooCommerce API
-      // GET /products/<id>/variations/<variation_id>
+      console.log(`[WooSync] Variable product with ${wooProduct.variations.length} variations`);
+      
+      if (!api) {
+        console.warn(`[WooSync] No API client provided, skipping variation sync`);
+        return;
+      }
+
+      // Fetch and sync each variation
+      for (const variationId of wooProduct.variations) {
+        try {
+          // Fetch individual variation from WooCommerce API
+          const response = await api.get(`products/${wooProduct.id}/variations/${variationId}`);
+          const variation: WooVariation = response.data;
+
+          // Build variant data from WooCommerce variation
+          const variantData = this.buildVariationData(variation, storeCurrency);
+
+          // Upsert variant by SKU
+          if (variantData.sku) {
+            await productVariantRepository.upsertBySku(
+              variantData.sku,
+              productId,
+              {
+                sku: variantData.sku,
+                price: variantData.price,
+                compareAtPrice: variantData.compareAtPrice,
+                currency: variantData.currency,
+                featuredImage: variantData.featuredImage,
+                rawPayload: variantData.rawPayload
+              }
+            );
+            console.log(`[WooSync] Variation synced: SKU=${variantData.sku}, Price=${variantData.price}`);
+          } else {
+            // If variation has no SKU, create with generated SKU
+            const generatedSku = `WOO-${wooProduct.id}-VAR-${variation.id}`;
+            await productVariantRepository.upsertBySku(
+              generatedSku,
+              productId,
+              {
+                sku: generatedSku,
+                price: variantData.price,
+                compareAtPrice: variantData.compareAtPrice,
+                currency: variantData.currency,
+                featuredImage: variantData.featuredImage,
+                rawPayload: variantData.rawPayload
+              }
+            );
+            console.log(`[WooSync] Variation synced (generated SKU): ${generatedSku}`);
+          }
+
+        } catch (error: any) {
+          console.error(`[WooSync] Error syncing variation ${variationId}:`, error.message);
+          // Continue with next variation
+        }
+      }
+
+      console.log(`[WooSync] Completed syncing ${wooProduct.variations.length} variations for product ${wooProduct.id}`);
     }
   }
 
@@ -302,23 +450,53 @@ export class WooCommerceSyncService {
    * Purpose: Build variant data for simple product.
    * Params:
    *   - wooProduct: WooProduct — WooCommerce product.
+   *   - storeCurrency: string — Currency from store settings.
    * Returns:
    *   - Object — Variant data.
    */
-  private buildSimpleVariant(wooProduct: WooProduct) {
+  private buildSimpleVariant(wooProduct: WooProduct, storeCurrency: string = 'USD') {
     return {
       sku: wooProduct.sku || `WOO-${wooProduct.id}`,
       price: parseFloat(wooProduct.price || wooProduct.regular_price || '0'),
       compareAtPrice: wooProduct.sale_price 
         ? parseFloat(wooProduct.regular_price || '0') 
         : null,
-      currency: 'USD', // TODO: Get from store settings
+      currency: storeCurrency, // Use store currency from settings
       featuredImage: wooProduct.images[0]?.src || null,
       rawPayload: {
         id: wooProduct.id,
         regular_price: wooProduct.regular_price,
         sale_price: wooProduct.sale_price,
         on_sale: wooProduct.on_sale
+      }
+    };
+  }
+
+  /**
+   * Purpose: Build variant data from WooCommerce variation.
+   * Params:
+   *   - variation: WooVariation — WooCommerce variation data.
+   *   - storeCurrency: string — Currency from store settings.
+   * Returns:
+   *   - Object — Variant data.
+   */
+  private buildVariationData(variation: WooVariation, storeCurrency: string = 'USD') {
+    return {
+      sku: variation.sku || null,
+      price: parseFloat(variation.price || variation.regular_price || '0'),
+      compareAtPrice: variation.sale_price && variation.on_sale
+        ? parseFloat(variation.regular_price || '0')
+        : null,
+      currency: storeCurrency,
+      featuredImage: variation.image?.src || null,
+      rawPayload: {
+        id: variation.id,
+        regular_price: variation.regular_price,
+        sale_price: variation.sale_price,
+        on_sale: variation.on_sale,
+        attributes: variation.attributes, // Store variation attributes (e.g., size, color)
+        stock_quantity: variation.stock_quantity,
+        stock_status: variation.stock_status
       }
     };
   }
@@ -331,9 +509,11 @@ export class WooCommerceSyncService {
    *   - Promise<Date | null> — Last sync timestamp.
    */
   async getLastSyncTime(storeId: string): Promise<Date | null> {
+    // Find the most recently synced product for this store
     const mappings = await storeProductMapRepository.findByStore(storeId, {
       page: 1,
-      pageSize: 1
+      pageSize: 1,
+      orderBy: { lastSyncedAt: 'desc' } // Explicitly order by lastSyncedAt
     });
 
     if (mappings.mappings.length === 0) {
