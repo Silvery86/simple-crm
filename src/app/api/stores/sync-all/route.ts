@@ -44,18 +44,52 @@ import { storeRepository } from '@/lib/db/repositories/store.repo';
 export async function POST(request: NextRequest) {
   try {
     // Parse request body (optional sync options)
+    let body: any = {};
     let syncOptions: any = {};
     let modifiedOnly = false;
     
     try {
-      const body = await request.json();
-      syncOptions = {
-        pageSize: body.pageSize,
-        maxPages: body.maxPages,
-      };
-      modifiedOnly = body.modifiedOnly === true;
-    } catch {
+      body = await request.json();
+    } catch (jsonError: any) {
+      // Handle JSON parse errors
+      if (jsonError.name === 'SyntaxError') {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid JSON body'
+        }, { status: 400 });
+      }
       // Body is optional, use defaults
+      body = {};
+    }
+
+    // Validate pageSize
+    if (body.pageSize !== undefined) {
+      if (typeof body.pageSize !== 'number' || body.pageSize <= 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'pageSize must be a positive number'
+        }, { status: 400 });
+      }
+      syncOptions.pageSize = body.pageSize;
+    }
+
+    // Validate maxPages
+    if (body.maxPages !== undefined) {
+      if (typeof body.maxPages !== 'number' || body.maxPages <= 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'maxPages must be a positive number'
+        }, { status: 400 });
+      }
+      syncOptions.maxPages = body.maxPages;
+    }
+
+    modifiedOnly = body.modifiedOnly === true;
+
+    // Check query params too
+    const url = new URL(request.url);
+    if (url.searchParams.get('modifiedOnly') === 'true') {
+      modifiedOnly = true;
     }
 
     // Get all active WooCommerce stores
@@ -88,7 +122,7 @@ export async function POST(request: NextRequest) {
     const results = [];
     let successfulStores = 0;
     let failedStores = 0;
-    let totalProducts = 0;
+    let totalProducts = 0 as number;
 
     for (const store of activeStores) {
       try {
@@ -114,7 +148,7 @@ export async function POST(request: NextRequest) {
         });
 
         successfulStores++;
-        totalProducts += result.total;
+        totalProducts += result.created;
 
       } catch (error: any) {
         console.error(`[API] Failed to sync store ${store.name}:`, error.message);

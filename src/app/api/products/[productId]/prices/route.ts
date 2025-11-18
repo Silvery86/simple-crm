@@ -31,6 +31,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { productDisplayService } from '@/lib/services/product-display.service';
+import { productRepository } from '@/lib/db/repositories/product.repo';
 
 export async function GET(
   request: NextRequest,
@@ -38,6 +39,23 @@ export async function GET(
 ) {
   try {
     const { productId } = await params;
+
+    // Check if productId is empty
+    if (!productId || productId.trim() === '') {
+      return NextResponse.json({
+        success: false,
+        error: 'Product not found'
+      }, { status: 404 });
+    }
+
+    // Verify product exists
+    const product = await productRepository.findById(productId);
+    if (!product) {
+      return NextResponse.json({
+        success: false,
+        error: 'Product not found'
+      }, { status: 404 });
+    }
 
     // Get price comparison across all stores
     const priceComparison = await productDisplayService.compareProductPrices(productId);
