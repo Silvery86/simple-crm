@@ -182,6 +182,10 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// Export as 'proxy' for Next.js 16
+export { middleware as proxy };
+export default middleware;
+
 /**
  * Middleware configuration
  * Specifies which routes should be processed by middleware

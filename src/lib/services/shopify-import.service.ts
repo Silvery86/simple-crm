@@ -336,17 +336,42 @@ export async function importShopifyProducts(
               }
             }
             
-            await prisma.productVariant.create({
-              data: {
-                productId: product.id,
-                sku: variant.sku || null,
-                price: variant.price ? parseFloat(variant.price) : null,
-                compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
-                currency: 'USD',
-                featuredImage: featuredImageUrl,
-                rawPayload: variant,
-              } as any, // Cast to any until Prisma regenerates
-            });
+            // Use upsert to handle duplicate SKUs
+            if (variant.sku) {
+              await prisma.productVariant.upsert({
+                where: { sku: variant.sku },
+                update: {
+                  productId: product.id,
+                  price: variant.price ? parseFloat(variant.price) : null,
+                  compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
+                  currency: 'USD',
+                  featuredImage: featuredImageUrl,
+                  rawPayload: variant,
+                } as any,
+                create: {
+                  productId: product.id,
+                  sku: variant.sku,
+                  price: variant.price ? parseFloat(variant.price) : null,
+                  compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
+                  currency: 'USD',
+                  featuredImage: featuredImageUrl,
+                  rawPayload: variant,
+                } as any,
+              });
+            } else {
+              // No SKU, just create
+              await prisma.productVariant.create({
+                data: {
+                  productId: product.id,
+                  sku: null,
+                  price: variant.price ? parseFloat(variant.price) : null,
+                  compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
+                  currency: 'USD',
+                  featuredImage: featuredImageUrl,
+                  rawPayload: variant,
+                } as any,
+              });
+            }
           }
 
           progress.logs.push(`  ✅ All variants created for "${shopifyProduct.title}"`);

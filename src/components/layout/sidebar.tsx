@@ -117,7 +117,6 @@ export function Sidebar() {
       label: t('sidebar.stores'),
       icon: <Store className="h-5 w-5" />,
       href: `/${lang}/dashboard/stores`,
-      roles: ['ADMIN', 'MANAGER'],
     },
     {
       label: t('sidebar.analytics'),
