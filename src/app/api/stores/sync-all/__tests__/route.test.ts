@@ -61,14 +61,13 @@ describe('POST /api/stores/sync-all', () => {
   ];
 
   const mockSyncResult = {
-    success: true,
-    productsCreated: 5,
-    productsUpdated: 10,
-    productsFailed: 0,
-    variantsCreated: 15,
-    variantsUpdated: 20,
-    variantsFailed: 0,
+    total: 15,
+    created: 5,
+    updated: 10,
+    skipped: 0,
+    failed: 0,
     errors: [],
+    duration: 1000,
   };
 
   beforeEach(() => {
@@ -185,7 +184,7 @@ describe('POST /api/stores/sync-all', () => {
         meta: { page: 1, limit: 100, total: 2, pages: 1 },
       });
       (wooCommerceSyncService.syncStoreProducts as jest.Mock)
-        .mockResolvedValueOnce({ ...mockSyncResult, productsCreated: 10 })
+        .mockResolvedValueOnce({ ...mockSyncResult, created: 10 })
         .mockRejectedValueOnce(new Error('Sync failed'));
 
       const request = new NextRequest('http://localhost:3000/api/stores/sync-all', {
@@ -334,9 +333,9 @@ describe('POST /api/stores/sync-all', () => {
   describe('Result aggregation', () => {
     it('should correctly aggregate products from multiple stores', async () => {
       const results = [
-        { ...mockSyncResult, productsCreated: 10, productsUpdated: 5 },
-        { ...mockSyncResult, productsCreated: 15, productsUpdated: 8 },
-        { ...mockSyncResult, productsCreated: 20, productsUpdated: 12 },
+        { ...mockSyncResult, created: 10, updated: 5 },
+        { ...mockSyncResult, created: 15, updated: 8 },
+        { ...mockSyncResult, created: 20, updated: 12 },
       ];
 
       (storeRepository.list as jest.Mock).mockResolvedValue({
@@ -357,9 +356,9 @@ describe('POST /api/stores/sync-all', () => {
       const data = await response.json();
 
       expect(data.data.summary.totalProducts).toBe(45); // 10 + 15 + 20
-      expect(data.data.stores[0].result.productsCreated).toBe(10);
-      expect(data.data.stores[1].result.productsCreated).toBe(15);
-      expect(data.data.stores[2].result.productsCreated).toBe(20);
+      expect(data.data.stores[0].result.created).toBe(10);
+      expect(data.data.stores[1].result.created).toBe(15);
+      expect(data.data.stores[2].result.created).toBe(20);
     });
 
     it('should include store names in results', async () => {
