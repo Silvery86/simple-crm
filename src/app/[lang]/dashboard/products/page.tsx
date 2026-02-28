@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus, Package } from 'lucide-react';
 import { getDictionary } from '@/lib/locales/server';
+import { getProductsAction } from '@/lib/actions/product.actions';
 
 interface ProductPageProps {
   params: Promise<{ lang: string }>;
@@ -18,27 +19,12 @@ export async function generateMetadata({
   };
 }
 
-async function getProducts() {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/products?isShared=false`,
-      {
-        cache: 'no-store',
-      }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.success ? data.data : [];
-  } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return [];
-  }
-}
-
 export default async function ProductsPage({ params }: ProductPageProps) {
   const { lang } = await params;
   const dict = await getDictionary(lang);
-  const products = await getProducts();
+
+  const result = await getProductsAction({ isShared: false, limit: 100 });
+  const products = result.success ? (result.data?.data ?? []) : [];
 
   const totalProducts = products.length;
   const totalVariants = products.reduce(
@@ -60,11 +46,11 @@ export default async function ProductsPage({ params }: ProductPageProps) {
               {dict.page.products.title}
             </h1>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-              Store Products Only
+              {dict.page.products.filterAll}
             </span>
           </div>
           <p className="text-muted-foreground mt-2">
-            {dict.page.products.subtitle} (Excluding shared catalog products)
+            {dict.page.products.subtitle}
           </p>
         </div>
         <Link

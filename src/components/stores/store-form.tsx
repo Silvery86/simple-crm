@@ -6,6 +6,7 @@ import { useLang } from '@/lib/hooks/useLang';
 import { useToast } from '@/components/ui/toast';
 import { useGlobalLoader } from '@/components/ui/global-loader';
 import { storeFormSchema, type StoreFormData } from '@/lib/zod/store.schema';
+import { createStoreAction, updateStoreAction } from '@/lib/actions/store.actions';
 import { z } from 'zod';
 
 interface StoreFormProps {
@@ -73,36 +74,26 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
         showLoader(mode === 'create' ? t('page.stores.loader.creating') : t('page.stores.loader.updating'));
       }
 
-      const url =
-        mode === 'create'
-          ? '/api/stores'
-          : `/api/stores/${initialData?.id}`;
-      const method = mode === 'create' ? 'POST' : 'PUT';
-
-      // Prepare data - exclude consumerSecret if it's the placeholder
+      // Prepare data — exclude consumerSecret if it's the placeholder
       const submitData = {
         ...formData,
-        consumerSecret: formData.consumerSecret === '****************' 
-          ? undefined 
+        consumerSecret: formData.consumerSecret === '****************'
+          ? undefined
           : formData.consumerSecret,
       };
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
-      });
-
-      const data = await res.json();
+      // Call Server Action instead of fetch('/api/stores')
+      const data = mode === 'create'
+        ? await createStoreAction(submitData)
+        : await updateStoreAction(initialData!.id!, submitData);
 
       hideLoader();
 
       if (!data.success) {
-        // Check if it's a connection error
-        if (data.meta?.connectionStatus === 'failed') {
+        if ((data.meta?.connectionStatus as string) === 'failed') {
           showError(
             t('toast.error.connectionFailed'),
-            data.meta?.message || t('page.stores.error.cannotConnect'),
+            data.error?.message || t('page.stores.error.cannotConnect'),
             10000
           );
         } else {
@@ -111,26 +102,15 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
         return;
       }
 
-      // Check connection status
-      if (data.meta?.connectionStatus === 'failed') {
-        showError(
-          t('toast.error.connectionFailed'),
-          data.meta?.message || t('page.stores.error.cannotConnect'),
-          10000
-        );
-        return;
-      }
-
       // Success
       showSuccess(
         'toast.success.saved',
-        mode === 'create' 
+        mode === 'create'
           ? t('page.stores.success.created')
           : t('page.stores.success.updated'),
         3000
       );
 
-      // Redirect to stores list
       setTimeout(() => {
         router.push(`/${lang}/dashboard/stores`);
         router.refresh();

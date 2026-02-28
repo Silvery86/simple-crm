@@ -308,6 +308,69 @@ class PrismaProductRepository implements ProductRepository {
   }
 
   /**
+   * Purpose: Find handles that appear on more than one product (duplicate detection).
+   * Returns:
+   *   - Promise<{ handle: string }[]> — Array of duplicate handle values.
+   */
+  async findDuplicateHandles(): Promise<{ handle: string }[]> {
+    const groups = await (prisma.product as any).groupBy({
+      by: ['handle'],
+      where: { handle: { not: null } },
+      having: { handle: { _count: { gt: 1 } } },
+    });
+    return groups.filter((g: any) => g.handle !== null) as { handle: string }[];
+  }
+
+  /**
+   * Purpose: Find all products with a given handle.
+   * Params:
+   *   - handle: string — URL-friendly slug.
+   * Returns:
+   *   - Promise<Product[]> — Array of products sharing the handle.
+   */
+  async findAllByHandle(handle: string): Promise<Product[]> {
+    return prisma.product.findMany({ where: { handle } });
+  }
+
+  /**
+   * Purpose: Find a product by its URL handle (exact match).
+   * Params:
+   *   - handle: string — URL-friendly product slug.
+   *   - excludeId?: string — Product ID to exclude from search.
+   * Returns:
+   *   - Promise<Product | null> — Product or null if not found.
+   */
+  async findByHandle(handle: string, excludeId?: string): Promise<Product | null> {
+    return prisma.product.findFirst({
+      where: {
+        handle,
+        ...(excludeId && { id: { not: excludeId } }),
+      },
+    });
+  }
+
+  /**
+   * Purpose: Find products whose titles contain any of the given keywords (for fuzzy duplicate detection).
+   * Params:
+   *   - keywords: string[] — Keywords to search for in product titles.
+   *   - excludeId?: string — Product ID to exclude from results.
+   *   - limit: number — Maximum number of candidates to return (default: 50).
+   * Returns:
+   *   - Promise<Product[]> — Candidate products for further similarity scoring.
+   */
+  async findByTitleKeywords(keywords: string[], excludeId?: string, limit = 50): Promise<Product[]> {
+    return prisma.product.findMany({
+      where: {
+        OR: keywords.map((keyword) => ({
+          title: { contains: keyword, mode: 'insensitive' as const },
+        })),
+        ...(excludeId && { id: { not: excludeId } }),
+      },
+      take: limit,
+    });
+  }
+
+  /**
    * Purpose: Find products by store identifier through StoreProductMap.
    * Params:
    *   - storeId: string — The store identifier.

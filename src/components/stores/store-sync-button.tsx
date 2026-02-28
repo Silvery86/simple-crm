@@ -25,6 +25,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { syncStoreAction } from '@/lib/actions/store.actions';
 
 interface SyncResult {
   total: number;
@@ -59,7 +60,7 @@ export default function StoreSyncButton({
   const [modifiedOnly, setModifiedOnly] = useState(false);
 
   /**
-   * Purpose: Handle sync operation
+   * Purpose: Handle sync operation via Server Action
    */
   const handleSync = async () => {
     setIsSyncing(true);
@@ -67,45 +68,37 @@ export default function StoreSyncButton({
     setSyncResult(null);
 
     try {
-      const body: any = {
+      const syncOptions: any = {
         pageSize: parseInt(pageSize) || 100,
         modifiedOnly,
       };
 
       if (maxPages) {
-        body.maxPages = parseInt(maxPages);
+        syncOptions.maxPages = parseInt(maxPages);
       }
 
-      // Simulate progress
+      // Simulate progress while action runs
       const progressInterval = setInterval(() => {
         setSyncProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
 
-      const res = await fetch(`/api/stores/${storeId}/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      const result = await syncStoreAction(storeId, syncOptions);
 
       clearInterval(progressInterval);
       setSyncProgress(100);
 
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Sync failed');
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Sync failed');
       }
 
-      setSyncResult(data.data);
+      setSyncResult(result.data);
 
       toast({
         title: 'Sync Complete',
-        description: `Successfully synced ${data.data.total} products from ${storeName}`,
+        description: `Successfully synced ${result.data.total} products from ${storeName}`,
       });
 
-      onSyncComplete?.(data.data);
+      onSyncComplete?.(result.data);
     } catch (error: any) {
       console.error('Sync failed:', error);
       toast({

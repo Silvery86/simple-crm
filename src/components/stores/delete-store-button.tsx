@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, X } from 'lucide-react';
 import { useLang } from '@/lib/hooks/useLang';
+import { deleteStoreAction } from '@/lib/actions/store.actions';
 
 interface DeleteStoreButtonProps {
   storeId: string;
@@ -22,17 +23,13 @@ export default function DeleteStoreButton({
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/stores/${storeId}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteStoreAction(storeId);
 
-      const data = await res.json();
-
-      if (data.success) {
+      if (result.success) {
         router.push(`/${lang}/dashboard/stores`);
         router.refresh();
       } else {
-        alert(data.error?.message || 'Failed to delete store');
+        alert(result.error?.message || 'Failed to delete store');
       }
     } catch (error) {
       alert('An error occurred while deleting the store');

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus, Store } from 'lucide-react';
 import { getDictionary } from '@/lib/locales/server';
+import { getStoresAction } from '@/lib/actions/store.actions';
 
 interface StorePageProps {
   params: Promise<{ lang: string }>;
@@ -18,24 +19,12 @@ export async function generateMetadata({
   };
 }
 
-async function getStores() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/stores`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.success ? data.data : [];
-  } catch (error) {
-    console.error('Failed to fetch stores:', error);
-    return [];
-  }
-}
-
 export default async function StoresPage({ params }: StorePageProps) {
   const { lang } = await params;
   const dict = await getDictionary(lang);
-  const stores = await getStores();
+
+  const result = await getStoresAction();
+  const stores = result.success ? (result.data?.data ?? []) : [];
 
   const totalStores = stores.length;
   const activeStores = stores.filter((s: any) => s.isActive).length;

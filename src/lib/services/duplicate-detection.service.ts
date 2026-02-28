@@ -11,7 +11,8 @@
  */
 
 import { Product } from '@prisma/client';
-import { prisma } from '@/lib/db/client';
+import { productRepository } from '@/lib/db/repositories/product.repo';
+import { productVariantRepository } from '@/lib/db/repositories/product-variant.repo';
 
 export interface DuplicateCheckResult {
   found: boolean;
@@ -97,17 +98,8 @@ export class DuplicateDetectionService {
    * @returns Product if found, null otherwise
    */
   private async checkBySku(sku: string, excludeId?: string): Promise<Product | null> {
-    const variant = await prisma.productVariant.findFirst({
-      where: {
-        sku: sku,
-        productId: excludeId ? { not: excludeId } : undefined
-      },
-      include: {
-        product: true
-      }
-    });
-
-    return variant?.product || null;
+    const variant = await productVariantRepository.findBySkuExcluding(sku, excludeId);
+    return (variant as any)?.product ?? null;
   }
 
   /**
@@ -118,14 +110,7 @@ export class DuplicateDetectionService {
    * @returns Product if found, null otherwise
    */
   private async checkByHandle(handle: string, excludeId?: string): Promise<Product | null> {
-    const product = await prisma.product.findFirst({
-      where: {
-        handle: handle,
-        id: excludeId ? { not: excludeId } : undefined
-      }
-    });
-
-    return product;
+    return productRepository.findByHandle(handle, excludeId);
   }
 
   /**
@@ -157,18 +142,7 @@ export class DuplicateDetectionService {
 
     // Search for products with any of the keywords in title
     // Using case-insensitive LIKE for initial filtering
-    const candidates = await prisma.product.findMany({
-      where: {
-        OR: keywords.map(keyword => ({
-          title: {
-            contains: keyword,
-            mode: 'insensitive' as const
-          }
-        })),
-        id: excludeId ? { not: excludeId } : undefined
-      },
-      take: 50 // Limit candidates for performance
-    });
+    const candidates = await productRepository.findByTitleKeywords(keywords, excludeId, 50);
 
     if (candidates.length === 0) {
       return null;
@@ -329,62 +303,27 @@ export class DuplicateDetectionService {
       products: Product[];
     }> = [];
 
-    // Find duplicate SKUs
-    const skuDuplicates = await prisma.productVariant.groupBy({
-      by: ['sku'],
-      where: {
-        sku: { not: null }
-      },
-      having: {
-        sku: {
-          _count: {
-            gt: 1
-          }
-        }
-      }
-    });
+    // Find duplicate SKUs via repository
+    const skuDuplicates = await productVariantRepository.findDuplicateSkus();
 
     for (const group of skuDuplicates) {
-      if (!group.sku) continue;
-
-      const variants = await prisma.productVariant.findMany({
-        where: { sku: group.sku },
-        include: { product: true }
-      });
-
+      const variants = await productVariantRepository.findAllWithProductBySku(group.sku);
       duplicates.push({
         type: 'SKU',
         value: group.sku,
-        products: variants.map(v => v.product)
+        products: variants.map((v: any) => v.product),
       });
     }
 
-    // Find duplicate handles
-    const handleDuplicates = await prisma.product.groupBy({
-      by: ['handle'],
-      where: {
-        handle: { not: null }
-      },
-      having: {
-        handle: {
-          _count: {
-            gt: 1
-          }
-        }
-      }
-    });
+    // Find duplicate handles via repository
+    const handleDuplicates = await productRepository.findDuplicateHandles();
 
     for (const group of handleDuplicates) {
-      if (!group.handle) continue;
-
-      const products = await prisma.product.findMany({
-        where: { handle: group.handle }
-      });
-
+      const products = await productRepository.findAllByHandle(group.handle);
       duplicates.push({
         type: 'HANDLE',
         value: group.handle,
-        products
+        products,
       });
     }
 

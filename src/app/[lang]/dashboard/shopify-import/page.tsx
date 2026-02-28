@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { verifyShopifyAction } from '@/lib/actions/shopify.actions';
 
 interface ImportLog {
   message: string;
@@ -53,7 +54,7 @@ export default function ShopifyImportPage() {
   };
 
   /**
-   * Purpose: Verify if the URL is a Shopify store.
+   * Purpose: Verify if the URL is a Shopify store via Server Action.
    * Params: N/A
    * Returns:
    *   - Promise<void> — Resolves when verification is complete.
@@ -69,15 +70,9 @@ export default function ShopifyImportPage() {
     addLog(`Verifying store: ${storeUrl}`, 'info');
 
     try {
-      const response = await fetch('/api/shopify/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: storeUrl }),
-      });
+      const result = await verifyShopifyAction({ url: storeUrl });
 
-      const data = await response.json();
-
-      if (data.success && data.isShopify) {
+      if (result.success && result.data?.isShopify) {
         setIsVerified(true);
         addLog('✅ Shopify store verified successfully!', 'success');
       } else {

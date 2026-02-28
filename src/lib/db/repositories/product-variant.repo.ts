@@ -257,6 +257,55 @@ class PrismaProductVariantRepository implements IProductVariantRepository {
   }
 
   /**
+   * Purpose: Find a variant by SKU, optionally excluding a product ID (for duplicate detection).
+   * Params:
+   *   - sku: string — The variant SKU.
+   *   - excludeProductId?: string — Product ID to exclude from search.
+   * Returns:
+   *   - Promise<(ProductVariant & { product: Product }) | null> — Variant with product or null.
+   */
+  async findBySkuExcluding(
+    sku: string,
+    excludeProductId?: string
+  ): Promise<(ProductVariant & { product: any }) | null> {
+    return prisma.productVariant.findFirst({
+      where: {
+        sku,
+        ...(excludeProductId && { productId: { not: excludeProductId } }),
+      },
+      include: { product: true },
+    }) as any;
+  }
+
+  /**
+   * Purpose: Find SKUs that appear in more than one product variant (duplicate detection).
+   * Returns:
+   *   - Promise<{ sku: string }[]> — Array of duplicate SKU values.
+   */
+  async findDuplicateSkus(): Promise<{ sku: string }[]> {
+    const groups = await prisma.productVariant.groupBy({
+      by: ['sku'],
+      where: { sku: { not: null } },
+      having: { sku: { _count: { gt: 1 } } },
+    });
+    return groups.filter((g) => g.sku !== null) as { sku: string }[];
+  }
+
+  /**
+   * Purpose: Find all variants with a given SKU, including their parent product.
+   * Params:
+   *   - sku: string — SKU to search for.
+   * Returns:
+   *   - Promise<(ProductVariant & { product: Product })[]> — Variants with products.
+   */
+  async findAllWithProductBySku(sku: string): Promise<any[]> {
+    return prisma.productVariant.findMany({
+      where: { sku },
+      include: { product: true },
+    });
+  }
+
+  /**
    * Purpose: Delete all variants for a product.
    * Params:
    *   - productId: string — The product identifier.
