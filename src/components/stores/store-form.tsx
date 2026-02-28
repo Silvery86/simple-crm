@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { useLang } from '@/lib/hooks/useLang';
 import { useToast } from '@/components/ui/toast';
 import { useGlobalLoader } from '@/components/ui/global-loader';
 import { storeFormSchema, type StoreFormData } from '@/lib/zod/store.schema';
 import { createStoreAction, updateStoreAction } from '@/lib/actions/store.actions';
-import { z } from 'zod';
 
 interface StoreFormProps {
   initialData?: {
@@ -33,6 +33,7 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
   const { showLoader, hideLoader } = useGlobalLoader();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showSecret, setShowSecret] = useState(false);
 
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -102,14 +103,22 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
         return;
       }
 
-      // Success
-      showSuccess(
-        'toast.success.saved',
-        mode === 'create'
-          ? t('page.stores.success.created')
-          : t('page.stores.success.updated'),
-        3000
-      );
+      // Success — show connection info if WooCommerce was validated
+      if (data.meta?.connectionStatus === 'connected') {
+        showSuccess(
+          'toast.success.connected',
+          t('page.stores.success.created'),
+          4000
+        );
+      } else {
+        showSuccess(
+          'toast.success.saved',
+          mode === 'create'
+            ? t('page.stores.success.created')
+            : t('page.stores.success.updated'),
+          3000
+        );
+      }
 
       setTimeout(() => {
         router.push(`/${lang}/dashboard/stores`);
@@ -144,25 +153,25 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
     }
   };
 
-  // Realtime validation on blur
+  // Realtime validation on blur — use full schema parse to handle .refine() wrapper
   const handleBlur = (field: keyof StoreFormData) => {
-    try {
-      const fieldSchema = storeFormSchema.shape[field];
-      if (fieldSchema) {
-        fieldSchema.parse(formData[field]);
-        // Clear error if validation passes
+    const result = storeFormSchema.safeParse(formData);
+    if (result.success) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    } else {
+      const fieldError = result.error.issues.find((i) => i.path[0] === field);
+      if (fieldError) {
+        setErrors((prev) => ({ ...prev, [field]: fieldError.message }));
+      } else {
         setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[field];
-          return newErrors;
+          const next = { ...prev };
+          delete next[field];
+          return next;
         });
-      }
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: err.issues[0].message,
-        }));
       }
     }
   };
@@ -182,7 +191,7 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
 
       <div className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">
-          {t('page.stores.form.createTitle')}
+          {mode === 'edit' ? t('page.stores.form.editTitle') : t('page.stores.form.createTitle')}
         </h2>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -385,22 +394,33 @@ export default function StoreForm({ initialData, mode }: StoreFormProps) {
               >
                 {t('page.stores.form.consumerSecret')}
               </label>
-              <input
-                type="password"
-                id="consumerSecret"
-                name="consumerSecret"
-                value={formData.consumerSecret}
-                onChange={handleChange}
-                placeholder={
-                  mode === 'edit' 
-                    ? 'Enter new secret to update (or leave as is)'
-                    : t('page.stores.form.consumerSecretPlaceholder')
-                }
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+              <div className="relative">
+                <input
+                  type={showSecret ? 'text' : 'password'}
+                  id="consumerSecret"
+                  name="consumerSecret"
+                  value={formData.consumerSecret}
+                  onChange={handleChange}
+                  placeholder={
+                    mode === 'edit'
+                      ? t('page.stores.form.consumerSecretPlaceholder')
+                      : t('page.stores.form.consumerSecretPlaceholder')
+                  }
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSecret((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  aria-label={showSecret ? 'Hide secret' : 'Show secret'}
+                >
+                  {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {mode === 'edit'
-                  ? ''
+                  ? t('page.stores.form.consumerSecretPlaceholder')
                   : 'Required for WooCommerce integration'}
               </p>
             </div>

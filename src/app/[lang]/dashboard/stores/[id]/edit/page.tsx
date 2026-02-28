@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getDictionary } from '@/lib/locales/server';
 import StoreForm from '@/components/stores/store-form';
+import { getStoreByIdAction } from '@/lib/actions/store.actions';
 
 interface EditStorePageProps {
   params: Promise<{ lang: string; id: string }>;
@@ -19,33 +20,17 @@ export async function generateMetadata({
   };
 }
 
-async function getStore(id: string) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/stores/${id}`,
-      {
-        cache: 'no-store',
-      }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.success ? data.data : null;
-  } catch (error) {
-    console.error('Failed to fetch store:', error);
-    return null;
-  }
-}
-
 export default async function EditStorePage({
   params,
 }: EditStorePageProps) {
   const { lang, id } = await params;
   const dict = await getDictionary(lang);
-  const store = await getStore(id);
 
-  if (!store) {
+  const result = await getStoreByIdAction(id);
+  if (!result.success || !result.data) {
     notFound();
   }
+  const store = result.data;
 
   return (
     <div className="space-y-6">
