@@ -480,263 +480,26 @@ Upstash QStash is the job delivery layer for all async work. It delivers HTTP PO
 | Auth | QStash signature |
 | Service called | `errorDetectionService.runAllChecks()` |
 | External API | `woocommerceClient.getOrderCount({ after: 24h ago })` (for count comparison) |
-| DB models read | `SyncLog`, `WooOrder`, `WooProduct`, `PushLog`, existing `ErrorReport` |
+| DB models read | `SyncLog`, `Order`, `Product`, `PushLog`, existing `ErrorReport` |
 | DB models written | `ErrorReport` (deduplicated) |
 | Error handling | Each check runs independently — one check failure does not abort others. Deduplication: check for unresolved `ErrorReport` with same `flow + message hash` before inserting. |
 | SLA | Errors detected within 30 minutes of occurrence |
 
-### Prisma Schema Additions
+### Prisma Schema
 
-Migration naming: `20260608_add_woo_product_sync`, `20260608_add_push_log`, `20260608_add_error_report`, `20260608_add_sync_cursor`
-
-```prisma
-// ============================================================================
-// INTEGRATION FLOW ENUMS
-// ============================================================================
-
-enum SyncStatus {
-  PENDING
-  PROCESSING
-  SUCCESS
-  FAILED
-  SKIPPED
-}
-
-enum PushStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  SKIPPED
-}
-
-enum IntegrationFlow {
-  ORDER_WEBHOOK
-  ORDER_RECONCILIATION
-  PRODUCT_SYNC_INBOUND
-  PRODUCT_PUSH_OUTBOUND
-  ERROR_DETECTION
-}
-
-enum ErrorSeverity {
-  CRITICAL  // Action within 2 hours
-  WARNING   // Action within 24 hours
-  INFO      // Logged only, no action required
-}
-
-// ============================================================================
-// FLOW 1 + 2: ORDER SYNC
-// ============================================================================
-
-model WooOrder {
-  id          String   @id @default(cuid())
-  wooId       Int      @unique         // WooCommerce order ID — idempotency key
-  storeId     String
-  status      String
-  total       Decimal  @db.Decimal(10, 2)
-  currency    String
-  rawPayload  Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  store     Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  lineItems WooOrderLineItem[]
-  syncLog   SyncLog?
-
-  @@index([storeId])
-  @@index([status])
-  @@map("woo_orders")
-}
-
-model WooOrderLineItem {
-  id          String  @id @default(cuid())
-  wooOrderId  String
-  wooItemId   Int
-  productId   Int?
-  variationId Int?
-  name        String
-  sku         String?
-  quantity    Int
-  total       Decimal @db.Decimal(10, 2)
-
-  wooOrder WooOrder @relation(fields: [wooOrderId], references: [id], onDelete: Cascade)
-
-  @@index([wooOrderId])
-  @@map("woo_order_line_items")
-}
-
-model SyncLog {
-  id           String     @id @default(cuid())
-  wooOrderId   String     @unique       // idempotency key — unique constraint
-  storeId      String
-  status       SyncStatus
-  errorMessage String?
-  rawPayload   Json?
-  processedAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@index([status])
-  @@index([storeId])
-  @@index([processedAt])
-  @@map("sync_logs")
-}
-
-// ============================================================================
-// FLOW 3 + 4: PRODUCT SYNC
-// ============================================================================
-
-model WooProduct {
-  id               String   @id @default(cuid())
-  wooId            Int      @unique         // WooCommerce product ID — idempotency key
-  storeId          String
-  title            String
-  slug             String
-  sku              String?
-  status           String                   // publish | draft | private | trash
-  description      String?
-  shortDescription String?
-  price            Decimal? @db.Decimal(10, 2)
-  regularPrice     Decimal? @db.Decimal(10, 2)
-  salePrice        Decimal? @db.Decimal(10, 2)
-  stockQuantity    Int?
-  stockStatus      String                   // instock | outofstock | onbackorder
-  manageStock      Boolean  @default(false)
-  featuredImage    String?
-  rawPayload       Json
-  sourceUpdatedAt  DateTime                 // WooCommerce date_modified — used as cursor
-  lastSyncedAt     DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  store      Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  images     WooProductImage[]
-  categories WooProductCategory[]
-  tags       WooProductTag[]
-  pushLogs   PushLog[]
-
-  @@index([storeId])
-  @@index([status])
-  @@index([stockStatus])
-  @@index([sourceUpdatedAt])
-  @@map("woo_products")
-}
-
-model WooProductImage {
-  id           String @id @default(cuid())
-  wooProductId String
-  src          String
-  alt          String?
-  position     Int    @default(0)
-
-  wooProduct WooProduct @relation(fields: [wooProductId], references: [id], onDelete: Cascade)
-
-  @@index([wooProductId])
-  @@map("woo_product_images")
-}
-
-model WooCategory {
-  id      String @id @default(cuid())
-  wooId   Int    @unique
-  storeId String
-  name    String
-  slug    String
-
-  store    Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  products WooProductCategory[]
-
-  @@index([storeId])
-  @@map("woo_categories")
-}
-
-model WooTag {
-  id      String @id @default(cuid())
-  wooId   Int    @unique
-  storeId String
-  name    String
-  slug    String
-
-  store    Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  products WooProductTag[]
-
-  @@index([storeId])
-  @@map("woo_tags")
-}
-
-model WooProductCategory {
-  wooProductId  String
-  wooCategoryId String
-
-  wooProduct  WooProduct  @relation(fields: [wooProductId], references: [id], onDelete: Cascade)
-  wooCategory WooCategory @relation(fields: [wooCategoryId], references: [id], onDelete: Cascade)
-
-  @@id([wooProductId, wooCategoryId])
-  @@map("woo_product_categories")
-}
-
-model WooProductTag {
-  wooProductId String
-  wooTagId     String
-
-  wooProduct WooProduct @relation(fields: [wooProductId], references: [id], onDelete: Cascade)
-  wooTag     WooTag     @relation(fields: [wooTagId], references: [id], onDelete: Cascade)
-
-  @@id([wooProductId, wooTagId])
-  @@map("woo_product_tags")
-}
-
-model PushLog {
-  id             String     @id @default(cuid())
-  wooProductId   String
-  destinationUrl String
-  status         PushStatus
-  errorMessage   String?
-  pushedAt       DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  wooProduct WooProduct @relation(fields: [wooProductId], references: [id], onDelete: Cascade)
-
-  @@index([wooProductId])
-  @@index([status])
-  @@index([pushedAt])
-  @@map("push_logs")
-}
-
-// ============================================================================
-// FLOW 5: ERROR DETECTION
-// ============================================================================
-
-model ErrorReport {
-  id         String          @id @default(cuid())
-  flow       IntegrationFlow
-  severity   ErrorSeverity
-  message    String
-  messageHash String                              // sha256(flow+message) for deduplication
-  details    Json?
-  resolvedAt DateTime?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-
-  @@unique([flow, messageHash, resolvedAt])       // deduplication — null resolvedAt = unresolved
-  @@index([flow, severity])
-  @@index([resolvedAt])
-  @@index([createdAt])
-  @@map("error_reports")
-}
-
-// ============================================================================
-// SHARED: CURSOR MANAGEMENT
-// ============================================================================
-
-model SyncCursor {
-  id        String   @id @default(cuid())
-  name      String   @unique              // "lastOrderSyncAt" | "lastProductSyncAt"
-  value     DateTime
-  updatedAt DateTime @updatedAt
-
-  @@map("sync_cursors")
-}
-```
+> **⚠ SUPERSEDED — do not edit schema here.**
+>
+> The canonical multi-tenant Prisma schema lives in **`.docs/DATABASE_DESIGN.md`**. That document is the single source of truth for all 17 models, enums, unique constraints, indexes, migration order, and seed spec.
+>
+> Key changes from the schema that previously appeared in this section:
+> - All models renamed: `WooOrder → Order`, `WooProduct → Product`, `WooOrderLineItem → OrderItem`, `WooProductImage → ProductImage`, `WooCategory → ProductCategory`, `WooTag → ProductTag`
+> - All WooCommerce-ID unique constraints made composite: `@@unique([storeId, wooOrderId])`, `@@unique([storeId, wooProductId])` — single-column `@unique` on WooCommerce IDs is a data integrity bug (broken under multi-tenant)
+> - New models added: `User`, `StoreCredential`, `Customer`, `AssetFile`, `ImportJob`, `ImportedProduct`
+> - `SyncCursor` is now per-store: `@@unique([storeId, name])`
+> - `SyncLog` idempotency key is now composite: `@@unique([storeId, wooOrderId])`
+> - `ErrorReport` gains `storeId` FK for tenant-scoped error detection
+>
+> Migration naming convention and run order are documented in `.docs/DATABASE_DESIGN.md §9`.
 
 ### QStash Job Registry
 
@@ -751,12 +514,23 @@ Registered in `src/lib/jobs/registry.ts` — the single source of truth.
 
 ### WooCommerce API Client
 
-- **Base URL:** `${WOOCOMMERCE_BASE_URL}/wp-json/wc/v3`
-- **Auth:** `Authorization: Basic base64(consumer_key:consumer_secret)` header (never query params)
+`src/lib/utils/woocommerce-client.ts` exports a factory function — not a singleton. There are no global WooCommerce env vars; credentials are fetched from the `StoreCredential` table, decrypted in-memory, and passed to the factory.
+
+```typescript
+// Usage pattern in every job and service that calls WooCommerce
+const { consumerKey, consumerSecret } = await storeCredentialService.getDecryptedCredentials(storeId);
+const client = buildWooCommerceClient({ domain: store.domain, consumerKey, consumerSecret });
+const orders = await client.getOrders({ after: cursor, page, perPage: 100 });
+// plaintext credentials never leave the call stack
+```
+
+- **Base URL:** `https://${domain}/wp-json/wc/v3` — domain from `Store.domain` column
+- **Auth:** `Authorization: Basic base64(consumerKey:consumerSecret)` header (never query params)
 - **Rate limiting:** 100ms delay between pagination requests. Max `per_page=100`.
 - **getOrders params:** `after` (ISO datetime cursor), `page`, `per_page`, `status`
 - **getProducts params:** `after` (ISO datetime cursor), `page`, `per_page`
 - **Error handling:** 4xx → typed `WooApiError` with status. 5xx/429 → retryable error (QStash handles retry).
+- **Webhook secret lookup:** fetched via `wh:creds:{storeId}` Redis key (5-min TTL); DB fallback on miss. See `src/lib/utils/woocommerce-signature.ts`.
 
 ### New Website API Client
 
@@ -773,21 +547,26 @@ The concrete client is implemented when PM obtains answers to:
 4. Idempotency behavior on duplicate `externalId`
 5. Response format (resource returned vs status code only)
 
-### New Environment Variables
+### Environment Variables
 
-| Variable | Description | Required | Used By Flows |
+> Full reference: **`.env.example`**. All variables listed there must be set in Vercel (preview + production).
+
+> ⚠ `WOOCOMMERCE_BASE_URL`, `WOOCOMMERCE_CONSUMER_KEY`, `WOOCOMMERCE_CONSUMER_SECRET`, and `WOOCOMMERCE_WEBHOOK_SECRET` are **NOT** environment variables in this system. WooCommerce credentials are stored per-store in the `StoreCredential` table, encrypted with `CREDENTIAL_ENCRYPTION_KEY`.
+
+| Variable | Description | Required | Used By |
 |---|---|---|---|
-| `WOOCOMMERCE_BASE_URL` | WooCommerce store URL (e.g. `https://mystore.com`) | Phase 1 | 1, 2, 3, 5 |
-| `WOOCOMMERCE_CONSUMER_KEY` | WooCommerce REST API consumer key | Phase 1 | 2, 3, 5 |
-| `WOOCOMMERCE_CONSUMER_SECRET` | WooCommerce REST API consumer secret | Phase 1 | 2, 3, 5 |
-| `WOOCOMMERCE_WEBHOOK_SECRET` | HMAC secret on WooCommerce webhook | Phase 1 | 1 |
-| `QSTASH_URL` | Upstash QStash publish URL | Phase 1 | All |
-| `QSTASH_TOKEN` | Upstash QStash auth bearer token | Phase 1 | All |
-| `QSTASH_CURRENT_SIGNING_KEY` | QStash current sig key for verification | Phase 1 | All |
-| `QSTASH_NEXT_SIGNING_KEY` | QStash next sig key (key rotation support) | Phase 1 | All |
-| `NEW_WEBSITE_API_URL` | New website API base URL | Phase 3 | 4 |
-| `NEW_WEBSITE_API_KEY` | New website API auth key | Phase 3 | 4 |
-| `JOB_RECONCILE_ORDERS_URL` | Full public URL of reconcile-orders endpoint | Phase 1 | 2 |
-| `JOB_SYNC_PRODUCTS_URL` | Full public URL of sync-products endpoint | Phase 2 | 3 |
-| `JOB_PUSH_PRODUCTS_URL` | Full public URL of push-products endpoint | Phase 3 | 4 |
-| `JOB_DETECT_ERRORS_URL` | Full public URL of detect-errors endpoint | Phase 3 | 5 |
+| `CREDENTIAL_ENCRYPTION_KEY` | AES-256-GCM master key (32-byte base64) for encrypting `StoreCredential` fields | Phase 1 | All flows |
+| `VERCEL_BLOB_READ_WRITE_TOKEN` | Vercel Blob token for UC5 image download + re-upload | Phase 3 | UC5 |
+| `QSTASH_URL` | Upstash QStash publish URL | Phase 1 | All flows |
+| `QSTASH_TOKEN` | Upstash QStash auth bearer token | Phase 1 | All flows |
+| `QSTASH_CURRENT_SIGNING_KEY` | QStash current sig key for verification | Phase 1 | All flows |
+| `QSTASH_NEXT_SIGNING_KEY` | QStash next sig key (key rotation support) | Phase 1 | All flows |
+| `NEW_WEBSITE_API_URL` | New website API base URL | Phase 3 | Flow 4 |
+| `NEW_WEBSITE_API_KEY` | New website API auth key | Phase 3 | Flow 4 |
+| `JOB_RECONCILE_ORDERS_URL` | Full public URL of reconcile-orders endpoint | Phase 1 | Flow 2 |
+| `JOB_SYNC_PRODUCTS_URL` | Full public URL of sync-products endpoint | Phase 2 | Flow 3 |
+| `JOB_PUSH_PRODUCTS_URL` | Full public URL of push-products endpoint | Phase 3 | Flow 4 |
+| `JOB_DETECT_ERRORS_URL` | Full public URL of detect-errors endpoint | Phase 3 | Flow 5 |
+| `JOB_INITIAL_SYNC_ORDERS_URL` | Full public URL of initial-sync-orders endpoint | Phase 1 | UC1 |
+| `JOB_INITIAL_SYNC_PRODUCTS_URL` | Full public URL of initial-sync-products endpoint | Phase 1 | UC1 |
+| `JOB_INITIAL_SYNC_CUSTOMERS_URL` | Full public URL of initial-sync-customers endpoint | Phase 1 | UC1 |
